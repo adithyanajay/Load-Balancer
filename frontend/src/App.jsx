@@ -1,17 +1,38 @@
-import { useState } from 'react'
-import './App.css'
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import Login from "./pages/Login";
+
+import Dashboard from "./pages/Dashboard";
+import ActiveVMs from "./pages/ActiveVMs";
+import SystemMonitor from "./pages/SystemMonitor";
+import AutoScaler from "./pages/AutoScaler";
+import Sidebar from "./components/Sidebar";
+import TopBar from "./components/TopBar";
+
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-     <div> 
-      <h1 className="text-5xl text-center mtop-100">Hello, Annamic </h1>
-      <h1 className="text-2xl text-center mtop-100">Stay cool 😎</h1>
-     </div>
-    </>
-  )
+    <BrowserRouter>
+      <div className="flex min-h-screen">
+        <Sidebar />
+
+        <div className="flex-1 p-6 bg-gray-100">
+        <div className="flex-1 bg-gray-100 p-6">
+  <TopBar />
+  
+
+          <Routes>
+             <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/vms" element={<ActiveVMs />} />
+            <Route path="/monitor" element={<SystemMonitor />} />
+            <Route path="/autoscaler" element={<AutoScaler />} />
+          </Routes>
+           </div>
+        </div>
+      </div>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
