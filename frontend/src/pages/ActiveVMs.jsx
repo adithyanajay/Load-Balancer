@@ -29,8 +29,8 @@ export default function ActiveVMs() {
               </div>
               <span
                 className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide shadow-sm border border-white/50 ${vm.state === "RUNNING"
-                    ? "bg-status-running/20 text-green-700"
-                    : "bg-status-stopped/20 text-red-700"
+                  ? "bg-status-running/20 text-green-700"
+                  : "bg-status-stopped/20 text-red-700"
                   }`}
               >
                 {vm.state}
