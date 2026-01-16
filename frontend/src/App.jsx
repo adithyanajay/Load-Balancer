@@ -1,36 +1,23 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
-import Login from "./pages/Login";
-
+import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import ActiveVMs from "./pages/ActiveVMs";
 import SystemMonitor from "./pages/SystemMonitor";
 import AutoScaler from "./pages/AutoScaler";
-import Sidebar from "./components/Sidebar";
-import TopBar from "./components/TopBar";
-
+import Login from "./pages/Login";
 
 function App() {
   return (
     <BrowserRouter>
-      <div className="flex min-h-screen">
-        <Sidebar />
-
-        <div className="flex-1 p-6 bg-gray-100">
-        <div className="flex-1 bg-gray-100 p-6">
-  <TopBar />
-  
-
-          <Routes>
-             <Route path="/login" element={<Login />} />
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/vms" element={<ActiveVMs />} />
-            <Route path="/monitor" element={<SystemMonitor />} />
-            <Route path="/autoscaler" element={<AutoScaler />} />
-          </Routes>
-           </div>
-        </div>
-      </div>
+      <Layout>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/active-vms" element={<ActiveVMs />} />
+          <Route path="/system-monitor" element={<SystemMonitor />} />
+          <Route path="/auto-scaler" element={<AutoScaler />} />
+        </Routes>
+      </Layout>
     </BrowserRouter>
   );
 }
