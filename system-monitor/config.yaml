@@ -1,0 +1,20 @@
+vm:
+  id: "vm-001"
+  
+loadbalancer:
+  url: "http://10.0.1.100:8080"
+  metrics_endpoint: "/api/v1/metrics"
+  timeout_seconds: 5
+  retry_attempts: 3
+
+monitoring:
+  collection_interval_seconds: 1
+  report_interval_seconds: 5
+  
+weights:
+  cpu: 0.40
+  memory: 0.40
+  network: 0.20
+
+network:
+  capacity_mbps: 1000
