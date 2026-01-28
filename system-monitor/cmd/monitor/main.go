@@ -6,7 +6,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
 	"github.com/adithyanajay/system-monitor/internal/config"
 	"github.com/adithyanajay/system-monitor/internal/metrics"
 	"github.com/adithyanajay/system-monitor/internal/reporter"
