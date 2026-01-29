@@ -5,7 +5,7 @@ import { connectDashboardWS } from "./store/dashboardStore"
 
 export default function App() {
   useEffect(() => {
-    connectDashboardWS("ws://localhost:8080/api/v1/dashboard/ws")
+    connectDashboardWS("ws://98.92.116.72:8080/api/v1/dashboard/ws")
   }, [])
 
   return (

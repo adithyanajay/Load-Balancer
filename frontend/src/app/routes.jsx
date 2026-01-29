@@ -6,13 +6,11 @@ import VMDetails from "../pages/VMDetails.jsx"
 
 export default function AppRoutes() {
   return (
-    <Layout>
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/vms" element={<VMs />} />
         <Route path="/vms/:vmId" element={<VMDetails />} />
       </Routes>
-    </Layout>
   )
 }
 
