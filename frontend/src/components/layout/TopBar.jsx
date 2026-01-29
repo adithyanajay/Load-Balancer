@@ -1,6 +1,6 @@
 import React from 'react';
 import { Bell, Sun, Moon } from 'lucide-react';
-import { GlassCard } from './GlassCard';
+import { GlassCard } from '../ui//GlassCard';
 
 const TopBar = () => {
   return (

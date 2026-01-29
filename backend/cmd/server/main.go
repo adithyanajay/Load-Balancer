@@ -2,27 +2,46 @@ package main
 
 import (
 	"time"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
+
+	"load-balancer/internal/dashboard"
+	"load-balancer/internal/loadbalancer"
 	"load-balancer/internal/monitor"
 	"load-balancer/internal/state"
-	"load-balancer/internal/loadbalancer"
 )
 
 func main() {
 	router := gin.Default()
 
+	// Core state
 	stateManager := state.NewManager()
 	thresholdState := state.NewThresholdState()
 
-	monitorService := monitor.NewService(stateManager, thresholdState)
+	// Dashboard
+	dashboardService := dashboard.NewService(stateManager, thresholdState)
+	dashboardHub := dashboard.NewHub(dashboardService)
+	dashboardHandler := dashboard.NewHandler(dashboardService)
+
+	// Monitor
+	monitorService := monitor.NewService(
+		stateManager,
+		thresholdState,
+		dashboardHub, // 👈 broadcaster injected HERE
+	)
 	monitorHandler := monitor.NewHandler(monitorService)
 
+	// Load balancer
 	selector := loadbalancer.NewSelector(stateManager, thresholdState)
 	lbHandler := loadbalancer.NewHandler(selector, stateManager)
 
+	// Routes
 	router.POST("/api/v1/metrics", monitorHandler.HandleMetrics)
-	// router.Any("/*path", lbHandler.HandleRequest)
+
+	router.GET("/api/v1/dashboard/summary", dashboardHandler.GetSummary)
+	router.GET("/api/v1/dashboard/vms", dashboardHandler.GetVMs)
+	router.GET("/api/v1/dashboard/ws", gin.WrapH(http.HandlerFunc(dashboardHub.HandleWS)))
 
 	router.NoRoute(lbHandler.HandleRequest)
 

@@ -24,6 +24,40 @@ func NewThresholdState() *ThresholdState {
 	}
 }
 
+func (t *ThresholdState) UnderloadCount() int {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return len(t.Underload)
+}
+
+func (t *ThresholdState) OverloadCount() int {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return len(t.Overload)
+}
+
+func (t *ThresholdState) GetUnderloadSet() map[string]bool {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	set := make(map[string]bool)
+	for _, id := range t.Underload {
+		set[id] = true
+	}
+	return set
+}
+
+func (t *ThresholdState) GetOverloadSet() map[string]bool {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	set := make(map[string]bool)
+	for _, id := range t.Overload {
+		set[id] = true
+	}
+	return set
+}
+
 func (t *ThresholdState) Recalculate(vms map[string]*VMState) {
 	t.mu.Lock()
 	defer t.mu.Unlock()

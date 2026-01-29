@@ -1,5 +1,5 @@
 import React from 'react';
-import { GlassCard } from './GlassCard';
+import { GlassCard } from '../ui/GlassCard';
 
 export default function StatCard({ title, value, icon: Icon, trend, className }) {
   return (

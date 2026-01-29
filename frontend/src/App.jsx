@@ -1,25 +1,17 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Layout from "./components/Layout";
-import Dashboard from "./pages/Dashboard";
-import ActiveVMs from "./pages/ActiveVMs";
-import SystemMonitor from "./pages/SystemMonitor";
-import AutoScaler from "./pages/AutoScaler";
-import Login from "./pages/Login";
+import { useEffect } from "react"
+import Layout from "./components/layout/Layout"
+import Routes from "./app/routes"
+import { connectDashboardWS } from "./store/dashboardStore"
 
-function App() {
+export default function App() {
+  useEffect(() => {
+    connectDashboardWS("ws://localhost:8080/api/v1/dashboard/ws")
+  }, [])
+
   return (
-    <BrowserRouter>
-      <Layout>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/active-vms" element={<ActiveVMs />} />
-          <Route path="/system-monitor" element={<SystemMonitor />} />
-          <Route path="/auto-scaler" element={<AutoScaler />} />
-        </Routes>
-      </Layout>
-    </BrowserRouter>
-  );
+    <Layout>
+      <Routes />
+    </Layout>
+  )
 }
 
-export default App;

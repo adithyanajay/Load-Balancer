@@ -3,6 +3,7 @@ package state
 import (
 	"sync"
 	"time"
+
 	"load-balancer/internal/logger"
 )
 
@@ -17,6 +18,42 @@ func NewManager() *Manager {
 	}
 }
 
+// Total number of VMs ever seen (active + suspect + disabled)
+func (m *Manager) Total() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return len(m.vms)
+}
+
+// Count VMs by status
+func (m *Manager) CountByStatus(status VMStatus) int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	count := 0
+	for _, vm := range m.vms {
+		if vm.Status == status {
+			count++
+		}
+	}
+	return count
+}
+
+// Latest timestamp among all VMs
+func (m *Manager) LastUpdate() time.Time {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var latest time.Time
+	for _, vm := range m.vms {
+		if vm.LastReportedAt.After(latest) {
+			latest = vm.LastReportedAt
+		}
+	}
+	return latest
+}
+
+// Insert or update VM state from System Monitor metrics
 func (m *Manager) UpsertFromMetrics(
 	vmID string,
 	vmIP string,
@@ -57,14 +94,17 @@ func (m *Manager) UpsertFromMetrics(
 	logger.MetricsUpdate(vmID, metrics.LoadPercent)
 }
 
+// Safe snapshot of all VMs for readers (threshold, dashboard, proxy)
 func (m *Manager) GetAll() map[string]*VMState {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	copy := make(map[string]*VMState)
+	out := make(map[string]*VMState, len(m.vms))
 	for k, v := range m.vms {
-		copy[k] = v
+		// shallow copy is OK because VMState fields are immutable primitives
+		copied := *v
+		out[k] = &copied
 	}
-	return copy
+	return out
 }
 
