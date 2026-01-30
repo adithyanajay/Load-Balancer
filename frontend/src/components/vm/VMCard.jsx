@@ -1,88 +1,89 @@
 import { useNavigate } from "react-router-dom"
 import { GlassCard } from "../ui/GlassCard"
-import { Cpu, Database, Wifi } from "lucide-react"
+import VMStatusPill from "./VMStatusPill"
+import { Cpu, Database, Activity } from "lucide-react"
 
 export default function VMCard({ vm }) {
   const navigate = useNavigate()
   const m = vm.Metrics || {}
 
+  // Use LoadStatus instead of Status for coloring
+  const loadStatus = vm.LoadStatus || 'UNDERLOAD'
+
   return (
-    <GlassCard
-      hoverEffect
+    <GlassCard 
+      hoverEffect 
       onClick={() => navigate(`/vms/${vm.VMID}`)}
-      className="cursor-pointer relative overflow-hidden group"
+      className="relative overflow-hidden"
     >
-      {/* Status strip */}
-      <div
+      {/* Status indicator bar based on load */}
+      <div 
         className={`absolute left-0 top-0 bottom-0 w-1 ${
-          vm.Status === "ACTIVE"
-            ? "bg-status-running"
-            : vm.Status === "SUSPECT"
-            ? "bg-status-warning"
+          loadStatus === "UNDERLOAD" 
+            ? "bg-status-running" 
             : "bg-status-stopped"
-        }`}
+        }`} 
       />
 
-      <div className="pl-3 space-y-4">
-        {/* Header */}
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-widest">
-              VM ID
-            </p>
-            <h3 className="font-mono font-bold text-gray-900 text-lg">
-              {vm.VMID}
-            </h3>
-            <p className="text-xs text-gray-500 mt-0.5">{vm.VMIP}</p>
-          </div>
-
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-bold ${
-              vm.Status === "ACTIVE"
-                ? "bg-status-running/20 text-green-700"
-                : vm.Status === "SUSPECT"
-                ? "bg-status-warning/20 text-yellow-700"
-                : "bg-status-stopped/20 text-red-700"
-            }`}
-          >
-            {vm.Status}
-          </span>
-        </div>
-
-        {/* Load */}
+      {/* Header */}
+      <div className="flex justify-between items-start mb-4 pl-2">
         <div>
-          <div className="flex justify-between text-sm mb-1">
-            <span className="text-gray-600">Load</span>
-            <span className="font-bold">
-              {(m.LoadPercent ?? 0).toFixed(1)}%
-            </span>
-          </div>
-
-          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all"
-              style={{ width: `${Math.min(m.LoadPercent ?? 0, 100)}%` }}
-            />
-          </div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            VM ID
+          </p>
+          <h3 className="text-lg font-bold text-gray-900 font-mono mt-1">
+            {vm.VMID}
+          </h3>
+          <p className="text-xs text-gray-500 mt-0.5">{vm.VMIP}</p>
         </div>
+        <VMStatusPill status={loadStatus} />
+      </div>
 
-        {/* Bottom metrics */}
-        <div className="grid grid-cols-3 gap-3 text-xs text-gray-600">
-          <Metric icon={Cpu} value={`${(m.CPUPercent ?? 0).toFixed(1)}%`} />
-          <Metric icon={Database} value={`${(m.MemoryPercent ?? 0).toFixed(1)}%`} />
-          <Metric icon={Wifi} value={`${(m.NetworkMbps ?? 0).toFixed(2)} Mbps`} />
-        </div>
+      {/* Metrics */}
+      <div className="space-y-3 pl-2">
+        <MetricRow 
+          icon={Cpu} 
+          label="CPU" 
+          value={`${(m.CPUPercent ?? 0).toFixed(1)}%`}
+          percent={m.CPUPercent ?? 0}
+        />
+        
+        <MetricRow 
+          icon={Database} 
+          label="Memory" 
+          value={`${(m.MemoryPercent ?? 0).toFixed(1)}%`}
+          percent={m.MemoryPercent ?? 0}
+        />
+        
+        <MetricRow 
+          icon={Activity} 
+          label="Load" 
+          value={`${(m.LoadPercent ?? 0).toFixed(1)}%`}
+          percent={m.LoadPercent ?? 0}
+        />
       </div>
     </GlassCard>
   )
 }
 
-function Metric({ icon: Icon, value }) {
+function MetricRow({ icon: Icon, label, value, percent }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <Icon className="w-4 h-4 text-accent" />
-      <span className="font-medium">{value}</span>
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2 text-gray-600">
+          <Icon className="w-4 h-4 text-accent" />
+          <span className="text-sm font-medium">{label}</span>
+        </div>
+        <span className="text-sm font-bold text-gray-900">{value}</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            percent > 80 ? 'bg-status-warning' : 'bg-accent'
+          }`}
+          style={{ width: `${Math.min(percent, 100)}%` }}
+        />
+      </div>
     </div>
   )
 }
-

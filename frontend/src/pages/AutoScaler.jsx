@@ -1,96 +1,123 @@
 import React, { useState } from 'react';
-import { autoScalerConfig } from "../data/mockData";
-import { GlassCard } from '../components/GlassCard';
-import { Sliders, Save, Zap } from 'lucide-react';
+import { GlassCard } from '../components/ui/GlassCard';
+import { Sliders, Save, Zap, TrendingUp, TrendingDown } from 'lucide-react';
 
 export default function AutoScaler() {
-  // Using local state to simulate form interaction
-  const [config, setConfig] = useState(autoScalerConfig);
+  const [config, setConfig] = useState({
+    autoScalingEnabled: true,
+    minVMs: 2,
+    maxVMs: 10,
+    scaleUpCooldownMinutes: 5,
+    scaleDownCheckMinutes: 15,
+  });
 
-  const handleChange = (e) => {
-    // Dummy handler
+  const handleChange = (field, value) => {
+    setConfig(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = () => {
+    // Handle save logic here
+    console.log('Saving config:', config);
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-display font-bold text-gray-900">Auto Scaler</h1>
-        <p className="text-gray-500 mt-1">Configure automated resource management</p>
+        <h1 className="text-4xl font-display font-bold text-gray-900">
+          Auto Scaler
+        </h1>
+        <p className="text-gray-500 mt-2">
+          Configure automated resource scaling policies
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Configuration */}
         <div className="lg:col-span-2 space-y-6">
           <GlassCard className="p-8">
-            <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-100">
+            {/* Header with Toggle */}
+            <div className="flex items-center justify-between pb-6 mb-6 border-b border-gray-200">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent to-purple-400 flex items-center justify-center text-white shadow-lg shadow-purple-200">
-                  <Zap className="w-6 h-6 fill-current" />
+                <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-accent" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Automation Settings</h2>
-                  <p className="text-sm text-gray-500">Enable and configure auto-scaling rules</p>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Scaling Configuration
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Enable and configure auto-scaling rules
+                  </p>
                 </div>
               </div>
 
-              {/* iOS Toggle */}
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-gray-600">Enabled</span>
-                <button
-                  className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-accent/50 ${config.autoScalingEnabled ? 'bg-green-400' : 'bg-gray-300'}`}
-                >
-                  <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ${config.autoScalingEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                </button>
-              </div>
+              {/* Toggle Switch */}
+              <button
+                onClick={() => handleChange('autoScalingEnabled', !config.autoScalingEnabled)}
+                className={`
+                  relative w-14 h-8 rounded-full transition-colors duration-300
+                  focus:outline-none focus:ring-2 focus:ring-accent/50
+                  ${config.autoScalingEnabled ? 'bg-green-400' : 'bg-gray-300'}
+                `}
+              >
+                <div 
+                  className={`
+                    absolute top-1 left-1 w-6 h-6 bg-white rounded-full 
+                    transition-transform duration-300
+                    ${config.autoScalingEnabled ? 'translate-x-6' : 'translate-x-0'}
+                  `} 
+                />
+              </button>
             </div>
 
+            {/* Form Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="relative group">
-                <input
-                  type="number"
-                  defaultValue={config.minVMs}
-                  className="peer w-full bg-white/50 border border-gray-200 rounded-xl px-4 pt-6 pb-2 text-gray-900 font-bold outline-none focus:ring-2 focus:ring-accent/50 transition-all hover:bg-white/80"
-                />
-                <label className="absolute left-4 top-2 text-xs font-medium text-gray-500 transition-all peer-focus:text-accent uppercase tracking-wide">
-                  Minimum VMs
-                </label>
-              </div>
+              <InputField
+                label="Minimum VMs"
+                value={config.minVMs}
+                onChange={(e) => handleChange('minVMs', parseInt(e.target.value) || 0)}
+                type="number"
+                min="1"
+              />
 
-              <div className="relative group">
-                <input
-                  type="number"
-                  defaultValue={config.maxVMs}
-                  className="peer w-full bg-white/50 border border-gray-200 rounded-xl px-4 pt-6 pb-2 text-gray-900 font-bold outline-none focus:ring-2 focus:ring-accent/50 transition-all hover:bg-white/80"
-                />
-                <label className="absolute left-4 top-2 text-xs font-medium text-gray-500 transition-all peer-focus:text-accent uppercase tracking-wide">
-                  Maximum VMs
-                </label>
-              </div>
+              <InputField
+                label="Maximum VMs"
+                value={config.maxVMs}
+                onChange={(e) => handleChange('maxVMs', parseInt(e.target.value) || 0)}
+                type="number"
+                min="1"
+              />
 
-              <div className="relative group">
-                <input
-                  type="number"
-                  defaultValue={config.scaleUpCooldownMinutes}
-                  className="peer w-full bg-white/50 border border-gray-200 rounded-xl px-4 pt-6 pb-2 text-gray-900 font-bold outline-none focus:ring-2 focus:ring-accent/50 transition-all hover:bg-white/80"
-                />
-                <label className="absolute left-4 top-2 text-xs font-medium text-gray-500 transition-all peer-focus:text-accent uppercase tracking-wide">
-                  Scale Up Cooldown (m)
-                </label>
-              </div>
+              <InputField
+                label="Scale Up Cooldown (minutes)"
+                value={config.scaleUpCooldownMinutes}
+                onChange={(e) => handleChange('scaleUpCooldownMinutes', parseInt(e.target.value) || 0)}
+                type="number"
+                min="1"
+              />
 
-              <div className="relative group">
-                <input
-                  type="number"
-                  defaultValue={config.scaleDownCheckMinutes}
-                  className="peer w-full bg-white/50 border border-gray-200 rounded-xl px-4 pt-6 pb-2 text-gray-900 font-bold outline-none focus:ring-2 focus:ring-accent/50 transition-all hover:bg-white/80"
-                />
-                <label className="absolute left-4 top-2 text-xs font-medium text-gray-500 transition-all peer-focus:text-accent uppercase tracking-wide">
-                  Scale Down Interval (m)
-                </label>
-              </div>
+              <InputField
+                label="Scale Down Check (minutes)"
+                value={config.scaleDownCheckMinutes}
+                onChange={(e) => handleChange('scaleDownCheckMinutes', parseInt(e.target.value) || 0)}
+                type="number"
+                min="1"
+              />
             </div>
 
+            {/* Save Button */}
             <div className="mt-8 flex justify-end">
-              <button className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-accent to-purple-500 text-white rounded-full font-semibold shadow-lg shadow-purple-300 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 active:scale-95">
+              <button 
+                onClick={handleSave}
+                className="
+                  flex items-center gap-2 px-6 py-3 
+                  bg-accent text-white rounded-xl 
+                  font-semibold text-sm
+                  hover:bg-accent/90 
+                  transition-all
+                "
+              >
                 <Save className="w-4 h-4" />
                 Save Configuration
               </button>
@@ -98,42 +125,120 @@ export default function AutoScaler() {
           </GlassCard>
         </div>
 
+        {/* Sidebar Info */}
         <div className="space-y-6">
-          <GlassCard className="bg-gradient-to-br from-indigo-500 to-purple-600 !border-none text-white">
-            <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-              <Sliders className="w-5 h-5" />
-              Optimization Tips
-            </h3>
-            <p className="text-white/80 text-sm leading-relaxed">
-              Setting a lower cooldown period allows for faster reaction to traffic spikes, but may increase cost due to rapid provisioning.
+          {/* Tips Card */}
+          <GlassCard className="p-6 bg-gradient-to-br from-accent/20 to-purple-100">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-white/50 flex items-center justify-center">
+                <Sliders className="w-5 h-5 text-accent" />
+              </div>
+              <h3 className="font-bold text-gray-900">
+                Optimization Tips
+              </h3>
+            </div>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              Lower cooldown periods enable faster response to traffic spikes but may increase costs. 
+              Balance responsiveness with resource efficiency.
             </p>
           </GlassCard>
 
-          <GlassCard className="bg-white/40">
-            <h3 className="font-bold text-gray-900 mb-4">Metric Thresholds</h3>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Scale Up CPU</span>
-                  <span className="font-bold text-gray-900">&gt; 80%</span>
-                </div>
-                <div className="w-full bg-white/50 h-2 rounded-full overflow-hidden">
-                  <div className="h-full bg-status-warning w-[80%]"></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Scale Down CPU</span>
-                  <span className="font-bold text-gray-900">&lt; 30%</span>
-                </div>
-                <div className="w-full bg-white/50 h-2 rounded-full overflow-hidden">
-                  <div className="h-full bg-status-running w-[30%]"></div>
-                </div>
-              </div>
+          {/* Thresholds Card */}
+          <GlassCard className="p-6">
+            <h3 className="font-bold text-gray-900 mb-5">
+              Scaling Thresholds
+            </h3>
+            <div className="space-y-5">
+              <ThresholdRow 
+                icon={TrendingUp}
+                label="Scale Up CPU" 
+                threshold="> 80%"
+                percent={80}
+                color="bg-status-warning"
+              />
+              <ThresholdRow 
+                icon={TrendingDown}
+                label="Scale Down CPU" 
+                threshold="< 30%"
+                percent={30}
+                color="bg-status-running"
+              />
+            </div>
+          </GlassCard>
+
+          {/* Current Status */}
+          <GlassCard className="p-6">
+            <h3 className="font-bold text-gray-900 mb-4">
+              Current Status
+            </h3>
+            <div className="space-y-3">
+              <StatusRow label="Auto Scaling" value={config.autoScalingEnabled ? "Enabled" : "Disabled"} active={config.autoScalingEnabled} />
+              <StatusRow label="Active VMs" value="5" />
+              <StatusRow label="VM Range" value={`${config.minVMs} - ${config.maxVMs}`} />
             </div>
           </GlassCard>
         </div>
       </div>
     </div>
   );
+}
+
+/* ---------- Components ---------- */
+
+function InputField({ label, value, onChange, type = "text", min }) {
+  return (
+    <div className="relative">
+      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+        {label}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        min={min}
+        className="
+          w-full px-4 py-3 rounded-xl
+          bg-white/50 border border-gray-200
+          text-gray-900 font-semibold
+          focus:outline-none focus:ring-2 focus:ring-accent/50
+          transition-all
+        "
+      />
+    </div>
+  )
+}
+
+function ThresholdRow({ icon: Icon, label, threshold, percent, color }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Icon className="w-4 h-4 text-gray-600" />
+          <span className="text-sm text-gray-600">{label}</span>
+        </div>
+        <span className="text-sm font-bold text-gray-900">{threshold}</span>
+      </div>
+      <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+        <div 
+          className={`h-full ${color} rounded-full`}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function StatusRow({ label, value, active }) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+      <span className="text-sm text-gray-600">{label}</span>
+      <span className={`text-sm font-semibold ${
+        active !== undefined 
+          ? (active ? 'text-green-600' : 'text-red-600')
+          : 'text-gray-900'
+      }`}>
+        {value}
+      </span>
+    </div>
+  )
 }
