@@ -3,19 +3,15 @@ package config
 import (
 	"fmt"
 	"os"
+
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	VM          VMConfig          `yaml:"vm"`
 	LoadBalancer LoadBalancerConfig `yaml:"loadbalancer"`
-	Monitoring  MonitoringConfig  `yaml:"monitoring"`
-	Weights     WeightsConfig     `yaml:"weights"`
-	Network     NetworkConfig     `yaml:"network"`
-}
-
-type VMConfig struct {
-	ID string `yaml:"id"`
+	Monitoring   MonitoringConfig   `yaml:"monitoring"`
+	Weights      WeightsConfig      `yaml:"weights"`
+	Network      NetworkConfig      `yaml:"network"`
 }
 
 type LoadBalancerConfig struct {
@@ -51,10 +47,7 @@ func Load(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
-	if vmID := os.Getenv("VM_ID"); vmID != "" {
-		config.VM.ID = vmID
-	}
-
+	// Environment overrides (still valid)
 	if lbURL := os.Getenv("LOAD_BALANCER_URL"); lbURL != "" {
 		config.LoadBalancer.URL = lbURL
 	}
@@ -67,14 +60,18 @@ func Load(configPath string) (*Config, error) {
 }
 
 func (c *Config) Validate() error {
-	if c.VM.ID == "" {
-		return fmt.Errorf("vm.id is required")
-	}
 	if c.LoadBalancer.URL == "" {
 		return fmt.Errorf("loadbalancer.url is required")
 	}
+
 	if c.Weights.CPU+c.Weights.Memory+c.Weights.Network != 1.0 {
 		return fmt.Errorf("weights must sum to 1.0")
 	}
+
+	if c.Monitoring.ReportIntervalSeconds <= 0 {
+		return fmt.Errorf("monitoring.report_interval_seconds must be > 0")
+	}
+
 	return nil
 }
+

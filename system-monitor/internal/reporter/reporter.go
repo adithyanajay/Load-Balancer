@@ -28,10 +28,11 @@ func NewReporter(cfg *config.Config) *Reporter {
 	}
 }
 
-func (r *Reporter) Send(metrics *models.Metrics) error {
-	jsonData, err := json.Marshal(metrics)
+// Send sends the full MetricsPayload (instance_id + metrics)
+func (r *Reporter) Send(payload models.MetricsPayload) error {
+	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("failed to marshal metrics: %w", err)
+		return fmt.Errorf("failed to marshal metrics payload: %w", err)
 	}
 
 	var lastErr error
@@ -47,6 +48,7 @@ func (r *Reporter) Send(metrics *models.Metrics) error {
 		if err != nil {
 			lastErr = err
 			log.Printf("Attempt %d failed: %v", attempt, err)
+
 			if attempt < r.config.LoadBalancer.RetryAttempts {
 				time.Sleep(2 * time.Second)
 				continue
@@ -67,5 +69,9 @@ func (r *Reporter) Send(metrics *models.Metrics) error {
 		}
 	}
 
-	return fmt.Errorf("failed to send metrics after %d attempts: %w", r.config.LoadBalancer.RetryAttempts, lastErr)
+	return fmt.Errorf(
+		"failed to send metrics after %d attempts: %w",
+		r.config.LoadBalancer.RetryAttempts,
+		lastErr,
+	)
 }

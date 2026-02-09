@@ -59,10 +59,12 @@ func (r *CPUReader) Read() (*models.CPUStats, error) {
 
 	if r.prevStats != nil {
 		deltaTotal := currentStats.Total - r.prevStats.Total
-		deltaIdle := (currentStats.Idle + currentStats.IOWait) - (r.prevStats.Idle + r.prevStats.IOWait)
+		deltaIdle := (currentStats.Idle + currentStats.IOWait) -
+			(r.prevStats.Idle + r.prevStats.IOWait)
 
 		if deltaTotal > 0 {
-			currentStats.UsagePercent = 100.0 * float64(deltaTotal-deltaIdle) / float64(deltaTotal)
+			currentStats.UsagePercent =
+				100.0 * float64(deltaTotal-deltaIdle) / float64(deltaTotal)
 		}
 	}
 

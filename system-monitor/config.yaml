@@ -1,5 +1,5 @@
-vm:
-  id: "vm-002"
+# vm:
+#   id: "vm-002"
   
 loadbalancer:
   url: "http://localhost:8080"
