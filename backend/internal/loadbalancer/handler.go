@@ -1,8 +1,9 @@
 package loadbalancer
 
 import (
-	"net/http"
 	"load-balancer/internal/state"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,6 +16,19 @@ func NewHandler(sel *Selector, sm *state.Manager) *Handler {
 	return &Handler{selector: sel, state: sm}
 }
 
+// func (h *Handler) HandleRequest(c *gin.Context) {
+// 	vmID, err := h.selector.SelectVM()
+// 	if err != nil {
+// 		c.JSON(http.StatusServiceUnavailable, gin.H{
+// 			"error": "no active VM available",
+// 		})
+// 		return
+// 	}
+
+// 	vm := h.state.GetAll()[vmID]
+// 	ProxyRequest(c.Writer, c.Request, vm)
+// }
+
 func (h *Handler) HandleRequest(c *gin.Context) {
 	vmID, err := h.selector.SelectVM()
 	if err != nil {
@@ -24,7 +38,13 @@ func (h *Handler) HandleRequest(c *gin.Context) {
 		return
 	}
 
-	vm := h.state.GetAll()[vmID]
+	vm := h.state.GetVMByID(vmID)
+	if vm == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "selected VM not found",
+		})
+		return
+	}
+
 	ProxyRequest(c.Writer, c.Request, vm)
 }
-

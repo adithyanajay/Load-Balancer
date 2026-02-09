@@ -6,13 +6,15 @@ import (
 	"load-balancer/internal/logger"
 )
 
+// MarkSuspect marks VMs as SUSPECT if they stop reporting metrics
 func (m *Manager) MarkSuspect(threshold time.Duration) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	now := time.Now()
 
-	for _, vm := range m.vms {
+	// Iterate over ALL known VMs
+	for _, vm := range m.vmByID {
 		if vm.Status == StatusDisabled {
 			continue
 		}

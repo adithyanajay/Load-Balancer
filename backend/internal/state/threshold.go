@@ -1,74 +1,71 @@
 package state
 
 import (
-	"sort"
 	"sync"
 
 	"load-balancer/internal/logger"
 )
 
+// ThresholdState classifies VMs WITHOUT changing order
 type ThresholdState struct {
 	mu sync.RWMutex
 
-	Underload []string // instance_id list
-	Overload  []string // instance_id list
+	// FIFO-preserved queues
+	UnderloadQueue []string
+	OverloadQueue  []string
 
-	UnderloadThreshold float64
-	OverloadThreshold  float64
+	OverloadThreshold float64
 }
 
 func NewThresholdState() *ThresholdState {
 	return &ThresholdState{
-		UnderloadThreshold: 25.0,
-		OverloadThreshold:  75.0,
+		OverloadThreshold: 75.0,
 	}
 }
 
-func (t *ThresholdState) Recalculate(vms map[string]*VMState) {
+// ClassifyVMsByLoad filters VMs but preserves FIFO order
+func (t *ThresholdState) ClassifyVMsByLoad(
+	registeredVMs []*VMState,
+) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	t.Underload = []string{}
-	t.Overload = []string{}
+	t.UnderloadQueue = []string{}
+	t.OverloadQueue = []string{}
 
-	for id, vm := range vms {
+	for _, vm := range registeredVMs { // 🔥 FIFO ITERATION
 		if vm.Status != StatusActive {
 			continue
 		}
 
-		if vm.Metrics.LoadPercent >= t.OverloadThreshold {
-			t.Overload = append(t.Overload, id)
+		if vm.Metrics.LoadPercent < t.OverloadThreshold {
+			t.UnderloadQueue = append(t.UnderloadQueue, vm.InstanceID)
 		} else {
-			t.Underload = append(t.Underload, id)
+			t.OverloadQueue = append(t.OverloadQueue, vm.InstanceID)
 		}
 	}
 
-	sort.Slice(t.Overload, func(i, j int) bool {
-		return vms[t.Overload[i]].Metrics.LoadPercent <
-			vms[t.Overload[j]].Metrics.LoadPercent
-	})
-
-	logger.ThresholdState(t.Underload, t.Overload)
+	logger.ThresholdState(t.UnderloadQueue, t.OverloadQueue)
 }
 
-// Snapshot returns safe copies of underload and overload lists
+// Snapshot helpers (used by selector & dashboard)
 func (t *ThresholdState) Snapshot() (under []string, over []string) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	under = append([]string{}, t.Underload...)
-	over = append([]string{}, t.Overload...)
+	under = append([]string{}, t.UnderloadQueue...)
+	over = append([]string{}, t.OverloadQueue...)
 	return
 }
 
 func (t *ThresholdState) UnderloadCount() int {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	return len(t.Underload)
+	return len(t.UnderloadQueue)
 }
 
 func (t *ThresholdState) OverloadCount() int {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	return len(t.Overload)
+	return len(t.OverloadQueue)
 }
