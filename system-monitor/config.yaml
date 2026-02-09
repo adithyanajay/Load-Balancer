@@ -2,7 +2,7 @@
 #   id: "vm-002"
   
 loadbalancer:
-  url: "http://localhost:8080"
+  url: "http://98.92.116.72:8080"
   metrics_endpoint: "/api/v1/metrics"
   timeout_seconds: 5
   retry_attempts: 3
