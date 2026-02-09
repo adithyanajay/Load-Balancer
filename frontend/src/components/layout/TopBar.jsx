@@ -8,9 +8,14 @@ const TopBar = () => {
       <div className="mx-auto max-w-7xl">
         <GlassCard className="!p-4 flex items-center justify-between !rounded-2xl">
           {/* Left: Search or breadcrumb space */}
-          <div className="flex items-center gap-4">
-            <h1 className="text-lg font-semibold text-gray-700">Control Panel</h1>
-          </div>
+          <div className="flex items-center gap-2">
+  <img
+    src="/logo.png"   // change to your logo path
+    alt="DynamiQ Logo"
+    className="w-8 h-8 object-contain"
+  />
+  <h1 className="text-lg font-semibold text-gray-700">DynamiQ-Load Balancer</h1>
+</div>
 
           {/* Right: Actions & Profile */}
           <div className="flex items-center gap-3">
