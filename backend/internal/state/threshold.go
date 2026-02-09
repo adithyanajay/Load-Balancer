@@ -10,8 +10,8 @@ import (
 type ThresholdState struct {
 	mu sync.RWMutex
 
-	Underload []string            // FIFO vm_id list
-	Overload  []string            // priority vm_id list (lowest load first)
+	Underload []string // instance_id list
+	Overload  []string // instance_id list
 
 	UnderloadThreshold float64
 	OverloadThreshold  float64
@@ -22,40 +22,6 @@ func NewThresholdState() *ThresholdState {
 		UnderloadThreshold: 25.0,
 		OverloadThreshold:  75.0,
 	}
-}
-
-func (t *ThresholdState) UnderloadCount() int {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-	return len(t.Underload)
-}
-
-func (t *ThresholdState) OverloadCount() int {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-	return len(t.Overload)
-}
-
-func (t *ThresholdState) GetUnderloadSet() map[string]bool {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-
-	set := make(map[string]bool)
-	for _, id := range t.Underload {
-		set[id] = true
-	}
-	return set
-}
-
-func (t *ThresholdState) GetOverloadSet() map[string]bool {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-
-	set := make(map[string]bool)
-	for _, id := range t.Overload {
-		set[id] = true
-	}
-	return set
 }
 
 func (t *ThresholdState) Recalculate(vms map[string]*VMState) {
@@ -85,11 +51,24 @@ func (t *ThresholdState) Recalculate(vms map[string]*VMState) {
 	logger.ThresholdState(t.Underload, t.Overload)
 }
 
+// Snapshot returns safe copies of underload and overload lists
 func (t *ThresholdState) Snapshot() (under []string, over []string) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	return append([]string{}, t.Underload...),
-		append([]string{}, t.Overload...)
+	under = append([]string{}, t.Underload...)
+	over = append([]string{}, t.Overload...)
+	return
 }
 
+func (t *ThresholdState) UnderloadCount() int {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return len(t.Underload)
+}
+
+func (t *ThresholdState) OverloadCount() int {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return len(t.Overload)
+}

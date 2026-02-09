@@ -2,7 +2,8 @@ package state
 
 import (
 	"time"
-	 "load-balancer/internal/logger"
+
+	"load-balancer/internal/logger"
 )
 
 func (m *Manager) MarkSuspect(threshold time.Duration) {
@@ -18,10 +19,13 @@ func (m *Manager) MarkSuspect(threshold time.Duration) {
 
 		if now.Sub(vm.LastReportedAt) > threshold {
 			if vm.Status != StatusSuspect {
-				logger.StateChange(vm.VMID, string(vm.Status), string(StatusSuspect))
+				logger.StateChange(
+					vm.InstanceID,
+					string(vm.Status),
+					string(StatusSuspect),
+				)
 				vm.Status = StatusSuspect
 			}
 		}
 	}
 }
-

@@ -9,7 +9,7 @@ import (
 
 type Manager struct {
 	mu  sync.RWMutex
-	vms map[string]*VMState
+	vms map[string]*VMState // key = instance_id
 }
 
 func NewManager() *Manager {
@@ -18,14 +18,12 @@ func NewManager() *Manager {
 	}
 }
 
-// Total number of VMs ever seen (active + suspect + disabled)
 func (m *Manager) Total() int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return len(m.vms)
 }
 
-// Count VMs by status
 func (m *Manager) CountByStatus(status VMStatus) int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -39,7 +37,6 @@ func (m *Manager) CountByStatus(status VMStatus) int {
 	return count
 }
 
-// Latest timestamp among all VMs
 func (m *Manager) LastUpdate() time.Time {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -55,7 +52,7 @@ func (m *Manager) LastUpdate() time.Time {
 
 // Insert or update VM state from System Monitor metrics
 func (m *Manager) UpsertFromMetrics(
-	vmID string,
+	instanceID string,
 	vmIP string,
 	metrics Metrics,
 ) {
@@ -64,22 +61,21 @@ func (m *Manager) UpsertFromMetrics(
 
 	now := time.Now()
 
-	vm, exists := m.vms[vmID]
+	vm, exists := m.vms[instanceID]
 	if !exists {
-		m.vms[vmID] = &VMState{
-			VMID:           vmID,
+		m.vms[instanceID] = &VMState{
+			InstanceID:     instanceID,
 			VMIP:           vmIP,
 			Status:         StatusActive,
 			Metrics:        metrics,
 			LastReportedAt: now,
 		}
 
-		logger.Info("New VM registered: " + vmID)
-		logger.MetricsUpdate(vmID, metrics.LoadPercent)
+		logger.Info("New VM registered: " + instanceID)
+		logger.MetricsUpdate(instanceID, metrics.LoadPercent)
 		return
 	}
 
-	// Existing VM
 	prevState := vm.Status
 
 	vm.VMIP = vmIP
@@ -88,23 +84,20 @@ func (m *Manager) UpsertFromMetrics(
 	vm.Status = StatusActive
 
 	if prevState != StatusActive {
-		logger.StateChange(vmID, string(prevState), string(StatusActive))
+		logger.StateChange(instanceID, string(prevState), string(StatusActive))
 	}
 
-	logger.MetricsUpdate(vmID, metrics.LoadPercent)
+	logger.MetricsUpdate(instanceID, metrics.LoadPercent)
 }
 
-// Safe snapshot of all VMs for readers (threshold, dashboard, proxy)
 func (m *Manager) GetAll() map[string]*VMState {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	out := make(map[string]*VMState, len(m.vms))
 	for k, v := range m.vms {
-		// shallow copy is OK because VMState fields are immutable primitives
 		copied := *v
 		out[k] = &copied
 	}
 	return out
 }
-

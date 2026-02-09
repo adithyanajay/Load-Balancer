@@ -18,8 +18,10 @@ func (h *Handler) HandleMetrics(c *gin.Context) {
 		return
 	}
 
-	h.service.ProcessMetrics(req)
+	// source IP = VM private IP
+	vmIP := c.ClientIP()
+
+	h.service.ProcessMetrics(req, vmIP)
 
 	c.JSON(200, gin.H{"status": "ok"})
 }
-

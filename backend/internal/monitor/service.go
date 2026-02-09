@@ -1,9 +1,8 @@
 package monitor
 
 import (
-
-	"load-balancer/internal/state"
 	"load-balancer/internal/dashboard"
+	"load-balancer/internal/state"
 )
 
 type Service struct {
@@ -24,21 +23,20 @@ func NewService(
 	}
 }
 
-func (s *Service) ProcessMetrics(req MetricsRequest) {
+func (s *Service) ProcessMetrics(req MetricsRequest, vmIP string) {
 	s.state.UpsertFromMetrics(
-		req.VMID,
-		req.VMIP,
+		req.InstanceID,
+		vmIP,
 		state.Metrics{
-			LoadPercent:    req.LoadPercent,
-			CPUPercent:     req.CPUPercent,
-			MemoryPercent:  req.MemoryPercent,
-			NetworkMbps:    req.NetworkMbps,
-			NetworkPercent: req.NetworkPercent,
-			Timestamp:      req.Timestamp,
+			LoadPercent:    req.Metrics.LoadPercent,
+			CPUPercent:     req.Metrics.CPUPercent,
+			MemoryPercent:  req.Metrics.MemoryPercent,
+			NetworkMbps:    req.Metrics.NetworkMbps,
+			NetworkPercent: req.Metrics.NetworkPercent,
+			Timestamp:      req.Metrics.Timestamp,
 		},
 	)
 
 	s.threshold.Recalculate(s.state.GetAll())
 	s.hub.PushUpdate()
 }
-

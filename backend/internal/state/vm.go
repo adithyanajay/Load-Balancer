@@ -20,10 +20,9 @@ type Metrics struct {
 }
 
 type VMState struct {
-	VMID            string
-	VMIP            string
-	Status          VMStatus
-	Metrics         Metrics
-	LastReportedAt  time.Time
+	InstanceID     string
+	VMIP           string
+	Status         VMStatus
+	Metrics        Metrics
+	LastReportedAt time.Time
 }
-
