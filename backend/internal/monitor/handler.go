@@ -1,6 +1,9 @@
 package monitor
 
 import (
+	"encoding/json"
+	"net/http"
+
 	"load-balancer/internal/logger"
 
 	"github.com/gin-gonic/gin"
@@ -15,19 +18,25 @@ func NewHandler(s *Service) *Handler {
 }
 
 func (h *Handler) HandleMetrics(c *gin.Context) {
-	raw, _ := c.GetRawData()
-	logger.Info("RAW PAYLOAD: " + string(raw))
 	var req MetricsRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "invalid payload"})
+	decoder := json.NewDecoder(c.Request.Body)
+	decoder.DisallowUnknownFields()
+
+	if err := decoder.Decode(&req); err != nil {
+		logger.Info("JSON decode error: " + err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
 		return
 	}
 
-	// source IP = VM private IP
-	vmIP := c.ClientIP()
+	if req.InstanceID == "" {
+		logger.Info("missing instance_id in payload")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing instance_id"})
+		return
+	}
 
+	vmIP := c.ClientIP()
 	h.service.ProcessMetrics(req, vmIP)
 
-	c.JSON(200, gin.H{"status": "ok"})
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
