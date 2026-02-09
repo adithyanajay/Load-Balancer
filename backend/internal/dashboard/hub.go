@@ -42,11 +42,7 @@ func (h *Hub) PushUpdate() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	payload := map[string]interface{}{
-		"summary": h.service.Summary(),
-		"vms":     h.service.VMList(),
-	}
-
+	payload := h.service.Snapshot()
 	data, _ := json.Marshal(payload)
 
 	for c := range h.clients {
@@ -55,11 +51,7 @@ func (h *Hub) PushUpdate() {
 }
 
 func (h *Hub) sendSnapshot(c *websocket.Conn) {
-	payload := map[string]interface{}{
-		"summary": h.service.Summary(),
-		"vms":     h.service.VMList(),
-	}
+	payload := h.service.Snapshot()
 	data, _ := json.Marshal(payload)
 	_ = c.WriteMessage(websocket.TextMessage, data)
 }
-

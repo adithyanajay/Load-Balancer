@@ -18,3 +18,7 @@ func (h *Handler) GetVMs(c *gin.Context) {
 	c.JSON(200, h.service.VMList())
 }
 
+// Optional: full snapshot (summary + vms + queues)
+func (h *Handler) GetSnapshot(c *gin.Context) {
+	c.JSON(200, h.service.Snapshot())
+}
