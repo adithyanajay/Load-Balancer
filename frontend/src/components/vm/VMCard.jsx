@@ -8,56 +8,58 @@ export default function VMCard({ vm }) {
   const m = vm.Metrics || {}
 
   // Use LoadStatus instead of Status for coloring
-  const loadStatus = vm.LoadStatus || 'UNDERLOAD'
+  const loadStatus = vm.LoadStatus || "UNDERLOAD"
 
   return (
-    <GlassCard 
-      hoverEffect 
-      onClick={() => navigate(`/vms/${vm.VMID}`)}
+    <GlassCard
+      hoverEffect
+      onClick={() => navigate(`/vms/${vm.InstanceID}`)}   // ✅ FIXED
       className="relative overflow-hidden"
     >
       {/* Status indicator bar based on load */}
-      <div 
+      <div
         className={`absolute left-0 top-0 bottom-0 w-1 ${
-          loadStatus === "UNDERLOAD" 
-            ? "bg-status-running" 
+          loadStatus === "UNDERLOAD"
+            ? "bg-status-running"
             : "bg-status-stopped"
-        }`} 
+        }`}
       />
 
       {/* Header */}
       <div className="flex justify-between items-start mb-4 pl-2">
         <div>
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            VM ID
+            VM IP
           </p>
           <h3 className="text-lg font-bold text-gray-900 font-mono mt-1">
-            {vm.VMID}
+            {vm.VMIP}                         {/* ✅ show VM IP */}
           </h3>
-          <p className="text-xs text-gray-500 mt-0.5">{vm.VMIP}</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {vm.InstanceID}                  {/* ✅ keep InstanceID secondary */}
+          </p>
         </div>
         <VMStatusPill status={loadStatus} />
       </div>
 
       {/* Metrics */}
       <div className="space-y-3 pl-2">
-        <MetricRow 
-          icon={Cpu} 
-          label="CPU" 
+        <MetricRow
+          icon={Cpu}
+          label="CPU"
           value={`${(m.CPUPercent ?? 0).toFixed(1)}%`}
           percent={m.CPUPercent ?? 0}
         />
-        
-        <MetricRow 
-          icon={Database} 
-          label="Memory" 
+
+        <MetricRow
+          icon={Database}
+          label="Memory"
           value={`${(m.MemoryPercent ?? 0).toFixed(1)}%`}
           percent={m.MemoryPercent ?? 0}
         />
-        
-        <MetricRow 
-          icon={Activity} 
-          label="Load" 
+
+        <MetricRow
+          icon={Activity}
+          label="Load"
           value={`${(m.LoadPercent ?? 0).toFixed(1)}%`}
           percent={m.LoadPercent ?? 0}
         />
@@ -79,7 +81,7 @@ function MetricRow({ icon: Icon, label, value, percent }) {
       <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
-            percent > 80 ? 'bg-status-warning' : 'bg-accent'
+            percent > 80 ? "bg-status-warning" : "bg-accent"
           }`}
           style={{ width: `${Math.min(percent, 100)}%` }}
         />

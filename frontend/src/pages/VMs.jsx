@@ -1,8 +1,13 @@
 import { useDashboardStore } from "../store/dashboardStore"
 import VMCard from "../components/vm/VMCard"
+import LoadQueues from "../components/dashboard/LoadQueues"
 
 export default function VMs() {
-  const { vms } = useDashboardStore()
+  const { vms, queues } = useDashboardStore()
+
+  // console.log(vms)
+
+  // console.log(vms[0])
 
   if (!vms.length) {
     return (
@@ -32,11 +37,24 @@ export default function VMs() {
         </div>
       </div>
 
-      {/* VM Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {vms.map(vm => (
-          <VMCard key={vm.VMID} vm={vm} />
-        ))}
+      {/* Content */}
+      <div className="flex gap-6 items-start">
+        {/* VM Grid */}
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {vms.map((vm) => (
+            <VMCard key={vm.InstanceID} vm={vm} />
+          ))}
+        </div>
+
+        {/* Load Queues */}
+        <div className="w-80">
+        <LoadQueues
+  underload={queues.underload}
+  overload={queues.overload}
+  vms={vms}
+/>
+
+        </div>
       </div>
     </div>
   )

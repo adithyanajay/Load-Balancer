@@ -5,39 +5,35 @@ const listeners = new Set()
 
 const state = {
   summary: null,
-  vms: []
+  vms: [],
+  queues: {
+    underload: [],
+    overload: [],
+  },
 }
 
-// Track load status with hysteresis for each VM
 const loadStatusTracker = {}
 
-function calculateLoadStatus(vmId, loadPercent) {
-  // Initialize if first time seeing this VM
-  if (!loadStatusTracker[vmId]) {
-    loadStatusTracker[vmId] = loadPercent >= 75 ? 'OVERLOAD' : 'UNDERLOAD'
-    return loadStatusTracker[vmId]
+function calculateLoadStatus(instanceId, loadPercent) {
+  if (!loadStatusTracker[instanceId]) {
+    loadStatusTracker[instanceId] =
+      loadPercent >= 75 ? "OVERLOAD" : "UNDERLOAD"
+    return loadStatusTracker[instanceId]
   }
 
-  const currentStatus = loadStatusTracker[vmId]
+  const currentStatus = loadStatusTracker[instanceId]
 
-  // Hysteresis logic
-  if (currentStatus === 'UNDERLOAD') {
-    // Switch to OVERLOAD only when hitting 75% or above
-    if (loadPercent >= 75) {
-      loadStatusTracker[vmId] = 'OVERLOAD'
-    }
-  } else if (currentStatus === 'OVERLOAD') {
-    // Switch back to UNDERLOAD only when dropping to 25% or below
-    if (loadPercent <= 25) {
-      loadStatusTracker[vmId] = 'UNDERLOAD'
-    }
+  if (currentStatus === "UNDERLOAD" && loadPercent >= 75) {
+    loadStatusTracker[instanceId] = "OVERLOAD"
+  } else if (currentStatus === "OVERLOAD" && loadPercent <= 25) {
+    loadStatusTracker[instanceId] = "UNDERLOAD"
   }
 
-  return loadStatusTracker[vmId]
+  return loadStatusTracker[instanceId]
 }
 
 function notify() {
-  listeners.forEach(l => l({ ...state }))
+  listeners.forEach((l) => l({ ...state }))
 }
 
 export function useDashboardStore() {
@@ -45,10 +41,7 @@ export function useDashboardStore() {
 
   useEffect(() => {
     listeners.add(setData)
-
-    // Push current state immediately
     setData({ ...state })
-
     return () => listeners.delete(setData)
   }, [])
 
@@ -63,22 +56,27 @@ export function connectDashboardWS(url) {
   socket.onmessage = (e) => {
     const payload = JSON.parse(e.data)
 
-    state.summary = payload.summary || null
-    
-    // Process VMs and add load status
+    // Summary
+    state.summary = payload.summary ?? null
+
+    // VMs
     const vmsArray = Array.isArray(payload.vms)
       ? payload.vms
-      : Object.values(payload.vms || {})
+      : Object.values(payload.vms ?? {})
 
-    state.vms = vmsArray.map(vm => {
+    state.vms = vmsArray.map((vm) => {
       const loadPercent = vm.Metrics?.LoadPercent ?? 0
-      const loadStatus = calculateLoadStatus(vm.VMID, loadPercent)
-      
       return {
         ...vm,
-        LoadStatus: loadStatus
+        LoadStatus: calculateLoadStatus(vm.InstanceID, loadPercent),
       }
     })
+
+    // ✅ FIX: queues come from payload.queues
+    state.queues = {
+      underload: payload.queues?.underload ?? [],
+      overload: payload.queues?.overload ?? [],
+    }
 
     notify()
   }
@@ -88,7 +86,5 @@ export function connectDashboardWS(url) {
     setTimeout(() => connectDashboardWS(url), 3000)
   }
 
-  socket.onerror = () => {
-    socket.close()
-  }
+  socket.onerror = () => socket.close()
 }
