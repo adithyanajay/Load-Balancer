@@ -150,3 +150,28 @@ func (m *Manager) LastUpdate() time.Time {
 	}
 	return latest
 }
+
+
+
+// new 
+// ActiveCount returns number of ACTIVE VMs
+func (m *Manager) ActiveCount() int {
+	return m.CountByStatus(StatusActive)
+}
+
+// RemoveVM removes VM from state completely
+func (m *Manager) RemoveVM(instanceID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	delete(m.vmByID, instanceID)
+
+	// rebuild registrationOrder without instanceID
+	newOrder := []string{}
+	for _, id := range m.registrationOrder {
+		if id != instanceID {
+			newOrder = append(newOrder, id)
+		}
+	}
+	m.registrationOrder = newOrder
+}

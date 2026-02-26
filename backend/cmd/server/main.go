@@ -1,23 +1,19 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
+	"load-balancer/internal/autoscaler" // ✅ NEW
 	"load-balancer/internal/dashboard"
 	"load-balancer/internal/loadbalancer"
 	"load-balancer/internal/monitor"
 	"load-balancer/internal/state"
 )
 
-/*
-	CORS middleware
-	IMPORTANT:
-	- OPTIONS must NEVER reach the VM
-	- Load balancer must answer preflight itself
-*/
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "*")
@@ -36,12 +32,14 @@ func CORSMiddleware() gin.HandlerFunc {
 func main() {
 	router := gin.Default()
 
-	// ✅ APPLY CORS FIRST
 	router.Use(CORSMiddleware())
 
 	// ---------------- CORE STATE ----------------
 	stateManager := state.NewManager()
 	thresholdState := state.NewThresholdState()
+
+	// ✅ AUTOSCALER STATE
+	autoState := state.NewAutoscalerState()
 
 	// ---------------- DASHBOARD ----------------
 	dashboardService := dashboard.NewService(stateManager, thresholdState)
@@ -52,7 +50,7 @@ func main() {
 	monitorService := monitor.NewService(
 		stateManager,
 		thresholdState,
-		dashboardHub, // pushes WS updates
+		dashboardHub,
 	)
 	monitorHandler := monitor.NewHandler(monitorService)
 
@@ -60,12 +58,39 @@ func main() {
 	selector := loadbalancer.NewSelector(stateManager, thresholdState)
 	lbHandler := loadbalancer.NewHandler(selector, stateManager)
 
+	// ---------------- AUTOSCALER AWS CONFIG ----------------
+	launchCfg := autoscaler.LaunchConfig{
+		Region:        "us-east-1",
+		AMI:           "ami-0b6c6ebed2801a5cb",
+		InstanceType:  "t3.medium",
+		SubnetID:      "subnet-01ca07e9ad7c99066",
+		SecurityGroup: "sg-04ebfeb94a9831195",
+		KeyName:       "lb",
+	}
+
+	awsClient, err := autoscaler.NewClient(launchCfg)
+	if err != nil {
+		panic(err)
+	}
+
+	// Load Balancer Instance ID (hardcoded fallback)
+	lbInstanceID := "i-03c98352c66118c1d"
+
+	autoscalerService := autoscaler.NewService(
+		stateManager,
+		thresholdState,
+		autoState,
+		awsClient,
+		lbInstanceID,
+	)
+
+	// ✅ START AUTOSCALER LOOP
+	go autoscalerService.Start(context.Background())
+
 	// ---------------- ROUTES ----------------
 
-	// Metrics from system monitor
 	router.POST("/api/v1/metrics", monitorHandler.HandleMetrics)
 
-	// Dashboard APIs
 	router.GET("/api/v1/dashboard/summary", dashboardHandler.GetSummary)
 	router.GET("/api/v1/dashboard/vms", dashboardHandler.GetVMs)
 	router.GET(
@@ -73,11 +98,8 @@ func main() {
 		gin.WrapH(http.HandlerFunc(dashboardHub.HandleWS)),
 	)
 
-	// 🚨 IMPORTANT:
-	// Client traffic MUST be explicitly routed
 	router.Any("/api/v1/load", lbHandler.HandleRequest)
 
-	// ❌ Never proxy unknown routes
 	router.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "route not found",
@@ -92,7 +114,5 @@ func main() {
 		}
 	}()
 
-	// ---------------- START SERVER ----------------
 	router.Run(":8080")
 }
-
