@@ -50,3 +50,42 @@ func MetricsUpdate(instanceID string, load float64) {
 		load,
 	)
 }
+
+func AutoscalerTick() {
+	mu.Lock()
+	defer mu.Unlock()
+
+	log.Printf("[AUTOSCALER] Tick | %s", time.Now().Format(time.RFC3339))
+}
+
+func AutoscalerEvent(event string) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	log.Printf("[AUTOSCALER] %s | %s",
+		time.Now().Format(time.RFC3339),
+		event,
+	)
+}
+
+func AutoscalerScaleUp(count int) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	log.Printf(
+		"[AUTOSCALER] %s | SCALE UP | Count=%d",
+		time.Now().Format(time.RFC3339),
+		count,
+	)
+}
+
+func AutoscalerScaleDown(instanceID string) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	log.Printf(
+		"[AUTOSCALER] %s | SCALE DOWN | Instance=%s",
+		time.Now().Format(time.RFC3339),
+		instanceID,
+	)
+}

@@ -2,9 +2,10 @@ package autoscaler
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"time"
 
+	"load-balancer/internal/logger"
 	"load-balancer/internal/state"
 )
 
@@ -36,19 +37,29 @@ func (s *Service) Start(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
+	logger.AutoscalerEvent("Autoscaler started")
+
 	for {
 		select {
 		case <-ticker.C:
+			logger.AutoscalerTick()
 			s.evaluateScaleUp()
 			s.evaluateScaleDown()
 		case <-ctx.Done():
+			logger.AutoscalerEvent("Autoscaler stopped")
 			return
 		}
 	}
 }
 
+// ---------------------------------------------------
+// SCALE UP
+// ---------------------------------------------------
+
 func (s *Service) evaluateScaleUp() {
+
 	if !s.autoState.CanScale() {
+		logger.AutoscalerEvent("Cooldown active - skipping scale up")
 		return
 	}
 
@@ -56,50 +67,102 @@ func (s *Service) evaluateScaleUp() {
 	active := s.state.ActiveCount()
 	_, max, upCount, _ := s.autoState.GetConfig()
 
-	if underCount <= 1 && active < max {
-		allowed := max - active
-		if allowed <= 0 {
-			return
-		}
+	logger.AutoscalerEvent(
+		fmt.Sprintf("ScaleUp Check | Active=%d | Underload=%d | Max=%d",
+			active, underCount, max),
+	)
 
-		if upCount > allowed {
-			upCount = allowed
-		}
-
-		// First start stopped instances
-		stopped, err := s.awsClient.GetStoppedInstances()
-		if err == nil && len(stopped) > 0 {
-			toStart := stopped
-			if len(toStart) > upCount {
-				toStart = toStart[:upCount]
-			}
-			s.awsClient.StartInstances(toStart)
-			log.Println("Started stopped instances:", toStart)
-			s.autoState.MarkScaled()
-			return
-		}
-
-		// Otherwise launch new
-		err = s.awsClient.LaunchInstances(int32(upCount))
-		if err == nil {
-			log.Println("Launched new instances:", upCount)
-			s.autoState.MarkScaled()
-		}
+	if underCount > 1 || active >= max {
+		return
 	}
+
+	allowed := max - active
+	if allowed <= 0 {
+		return
+	}
+
+	if upCount > allowed {
+		upCount = allowed
+	}
+
+	logger.AutoscalerScaleUp(upCount)
+
+	// ----------------------------------------
+	// First: Start stopped instances
+	// ----------------------------------------
+	stopped, err := s.awsClient.GetStoppedInstances()
+	if err != nil {
+		logger.AutoscalerEvent(
+			fmt.Sprintf("Error fetching stopped instances: %v", err),
+		)
+		return
+	}
+
+	if len(stopped) > 0 {
+		toStart := stopped
+		if len(toStart) > upCount {
+			toStart = toStart[:upCount]
+		}
+
+		err := s.awsClient.StartInstances(toStart)
+		if err != nil {
+			logger.AutoscalerEvent(
+				fmt.Sprintf("Failed to start stopped instances: %v", err),
+			)
+			return
+		}
+
+		logger.AutoscalerEvent(
+			fmt.Sprintf("Started stopped instances: %v", toStart),
+		)
+
+		s.autoState.MarkScaled()
+		return
+	}
+
+	// ----------------------------------------
+	// Otherwise: Launch new instances
+	// ----------------------------------------
+	err = s.awsClient.LaunchInstances(int32(upCount))
+	if err != nil {
+		logger.AutoscalerEvent(
+			fmt.Sprintf("Failed to launch new instances: %v", err),
+		)
+		return
+	}
+
+	logger.AutoscalerEvent(
+		fmt.Sprintf("Launched new instances: %d", upCount),
+	)
+
+	s.autoState.MarkScaled()
 }
 
+// ---------------------------------------------------
+// SCALE DOWN
+// ---------------------------------------------------
+
 func (s *Service) evaluateScaleDown() {
+
 	if !s.autoState.CanScale() {
+		logger.AutoscalerEvent("Cooldown active - skipping scale down")
 		return
 	}
 
 	_, over := s.threshold.Snapshot()
+
 	if len(over) > 0 {
+		logger.AutoscalerEvent("Overload present - skipping scale down")
 		return
 	}
 
 	active := s.state.ActiveCount()
 	min, _, _, downCount := s.autoState.GetConfig()
+
+	logger.AutoscalerEvent(
+		fmt.Sprintf("ScaleDown Check | Active=%d | Min=%d",
+			active, min),
+	)
 
 	if active <= min {
 		return
@@ -107,15 +170,22 @@ func (s *Service) evaluateScaleDown() {
 
 	vms := s.state.GetVMsInRegistrationOrder()
 
-	// Check all load < 20%
+	// Ensure all ACTIVE VMs are below 20%
 	for _, vm := range vms {
 		if vm.Metrics.LoadPercent >= 20 {
+			logger.AutoscalerEvent(
+				fmt.Sprintf("VM %s load %.2f%% >= 20%% - skipping scale down",
+					vm.InstanceID, vm.Metrics.LoadPercent),
+			)
 			return
 		}
 	}
 
-	stopped := 0
-	for i := len(vms) - 1; i >= 0 && stopped < downCount; i-- {
+	stoppedCount := 0
+
+	// Iterate from bottom (FIFO reverse)
+	for i := len(vms) - 1; i >= 0 && stoppedCount < downCount; i-- {
+
 		vm := vms[i]
 
 		if vm.InstanceID == s.lbInstanceID {
@@ -123,14 +193,22 @@ func (s *Service) evaluateScaleDown() {
 		}
 
 		err := s.awsClient.StopInstance(vm.InstanceID)
-		if err == nil {
-			s.state.RemoveVM(vm.InstanceID)
-			log.Println("Stopped instance:", vm.InstanceID)
-			stopped++
+		if err != nil {
+			logger.AutoscalerEvent(
+				fmt.Sprintf("Failed to stop instance %s: %v",
+					vm.InstanceID, err),
+			)
+			continue
 		}
+
+		s.state.RemoveVM(vm.InstanceID)
+
+		logger.AutoscalerScaleDown(vm.InstanceID)
+
+		stoppedCount++
 	}
 
-	if stopped > 0 {
+	if stoppedCount > 0 {
 		s.autoState.MarkScaled()
 	}
 }
