@@ -72,7 +72,10 @@ func (s *Service) evaluateScaleUp() {
 			active, underCount, max),
 	)
 
-	if underCount > 1 || active >= max {
+	if underCount > 
+	
+	
+	1 || active >= max {
 		return
 	}
 

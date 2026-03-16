@@ -46,3 +46,28 @@ func (a *AutoscalerState) GetConfig() (min, max, up, down int) {
 	defer a.mu.RUnlock()
 	return a.MinInstances, a.MaxInstances, a.ScaleUpCount, a.ScaleDownCount
 }
+
+
+
+
+
+func (a *AutoscalerState) UpdateConfig(
+	min int,
+	max int,
+	up int,
+	down int,
+	cooldown time.Duration,
+) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	a.MinInstances = min
+	a.MaxInstances = max
+	a.ScaleUpCount = up
+	a.ScaleDownCount = down
+	a.Cooldown = cooldown
+}
+
+
+
+

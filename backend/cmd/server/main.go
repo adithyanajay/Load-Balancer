@@ -83,11 +83,20 @@ func main() {
 		awsClient,
 		lbInstanceID,
 	)
+	adminHandler := autoscaler.NewAdminHandler(
+		autoState,
+		stateManager,
+		awsClient,
+		lbInstanceID,
+	)
 
 	// ✅ START AUTOSCALER LOOP
 	go autoscalerService.Start(context.Background())
 
 	// ---------------- ROUTES ----------------
+
+	// Autoscaler Admin APIs
+	autoscaler.RegisterAdminRoutes(router, adminHandler)
 
 	router.POST("/api/v1/metrics", monitorHandler.HandleMetrics)
 

@@ -15,14 +15,17 @@ type ThresholdState struct {
 	OverloadQueue  []string
 
 	OverloadThreshold float64
+	UnderloadThreshold float64
 }
 
 func NewThresholdState() *ThresholdState {
 	return &ThresholdState{
 		OverloadThreshold: 75.0,
+		UnderloadThreshold: 25.0,
+	
 	}
 }
-
+                                                                         
 // ClassifyVMsByLoad filters VMs but preserves FIFO order
 func (t *ThresholdState) ClassifyVMsByLoad(
 	registeredVMs []*VMState,
@@ -33,7 +36,7 @@ func (t *ThresholdState) ClassifyVMsByLoad(
 	t.UnderloadQueue = []string{}
 	t.OverloadQueue = []string{}
 
-	for _, vm := range registeredVMs { // 🔥 FIFO ITERATION
+	for _, vm := range registeredVMs { // FIFO ITERATION
 		if vm.Status != StatusActive {
 			continue
 		}

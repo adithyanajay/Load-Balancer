@@ -92,3 +92,14 @@ func (c *Client) GetStoppedInstances() ([]string, error) {
 func stringPtr(s string) *string {
 	return &s
 }
+
+
+
+
+
+func (c *Client) RebootInstance(instanceID string) error {
+	_, err := c.ec2Client.RebootInstances(context.TODO(), &ec2.RebootInstancesInput{
+		InstanceIds: []string{instanceID},
+	})
+	return err
+}
