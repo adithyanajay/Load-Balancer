@@ -63,19 +63,49 @@ func (s *Service) evaluateScaleUp() {
 		return
 	}
 
-	underCount := s.threshold.UnderloadCount()
 	active := s.state.ActiveCount()
-	_, max, upCount, _ := s.autoState.GetConfig()
+	min, max, upCount, _ := s.autoState.GetConfig()
+	underCount := s.threshold.UnderloadCount()
 
 	logger.AutoscalerEvent(
-		fmt.Sprintf("ScaleUp Check | Active=%d | Underload=%d | Max=%d",
-			active, underCount, max),
+		fmt.Sprintf("ScaleUp Check | Active=%d | Min=%d | Max=%d | Underload=%d",
+			active, min, max, underCount),
 	)
 
-	if underCount > 
-	
-	
-	1 || active >= max {
+	// ---------------------------------------------------
+	// MINIMUM CAPACITY ENFORCEMENT
+	// ---------------------------------------------------
+
+	if active < min {
+
+		needed := min - active
+
+		logger.AutoscalerEvent(
+			fmt.Sprintf("Active instances below minimum (%d < %d). Scaling up %d instances",
+				active, min, needed),
+		)
+
+		err := s.awsClient.LaunchInstances(int32(needed))
+		if err != nil {
+			logger.AutoscalerEvent(
+				fmt.Sprintf("Failed to launch instances to meet minimum: %v", err),
+			)
+			return
+		}
+
+		logger.AutoscalerEvent(
+			fmt.Sprintf("Launched %d instances to satisfy minimum capacity", needed),
+		)
+
+		s.autoState.MarkScaled()
+		return
+	}
+
+	// ---------------------------------------------------
+	// NORMAL SCALE-UP LOGIC
+	// ---------------------------------------------------
+
+	if underCount > 1 || active >= max {
 		return
 	}
 
@@ -93,6 +123,7 @@ func (s *Service) evaluateScaleUp() {
 	// ----------------------------------------
 	// First: Start stopped instances
 	// ----------------------------------------
+
 	stopped, err := s.awsClient.GetStoppedInstances()
 	if err != nil {
 		logger.AutoscalerEvent(
@@ -126,6 +157,7 @@ func (s *Service) evaluateScaleUp() {
 	// ----------------------------------------
 	// Otherwise: Launch new instances
 	// ----------------------------------------
+
 	err = s.awsClient.LaunchInstances(int32(upCount))
 	if err != nil {
 		logger.AutoscalerEvent(
