@@ -81,26 +81,50 @@ func (s *Service) evaluateScaleUp() {
 		needed := min - active
 
 		logger.AutoscalerEvent(
-			fmt.Sprintf("Active instances below minimum (%d < %d). Scaling up %d instances",
-				active, min, needed),
+			fmt.Sprintf(
+				"Active instances below minimum (%d < %d). Need %d instances",
+				active, min, needed,
+			),
 		)
 
-		err := s.awsClient.LaunchInstances(int32(needed))
+		// ----------------------------------------
+		// First: Start stopped instances
+		// ----------------------------------------
+
+		stopped, err := s.awsClient.GetStoppedInstances()
 		if err != nil {
 			logger.AutoscalerEvent(
-				fmt.Sprintf("Failed to launch instances to meet minimum: %v", err),
+				fmt.Sprintf("Error fetching stopped instances: %v", err),
 			)
 			return
 		}
 
-		logger.AutoscalerEvent(
-			fmt.Sprintf("Launched %d instances to satisfy minimum capacity", needed),
-		)
+		if len(stopped) > 0 {
 
-		s.autoState.MarkScaled()
-		return
+			toStart := stopped
+			if len(toStart) > needed {
+				toStart = toStart[:needed]
+			}
+
+			err := s.awsClient.StartInstances(toStart)
+			if err != nil {
+				logger.AutoscalerEvent(
+					fmt.Sprintf("Failed to start stopped instances: %v", err),
+				)
+				return
+			}
+
+			logger.AutoscalerEvent(
+				fmt.Sprintf(
+					"Started stopped instances to meet minimum: %v",
+					toStart,
+				),
+			)
+
+			s.autoState.MarkScaled()
+			return
+		}
 	}
-
 	// ---------------------------------------------------
 	// NORMAL SCALE-UP LOGIC
 	// ---------------------------------------------------
