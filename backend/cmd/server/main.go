@@ -88,6 +88,8 @@ func main() {
 		stateManager,
 		awsClient,
 		lbInstanceID,
+		dashboardService,
+		dashboardHub,
 	)
 
 	// ✅ START AUTOSCALER LOOP

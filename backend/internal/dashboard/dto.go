@@ -23,3 +23,10 @@ type VMCard struct {
 	LastReportedAt time.Time `json:"last_reported_at"`
 }
 
+type AutoscalerView struct {
+	MinInstances   int `json:"min_instances"`
+	MaxInstances   int `json:"max_instances"`
+	ScaleUpCount   int `json:"scale_up_count"`
+	ScaleDownCount int `json:"scale_down_count"`
+	CooldownSec    int `json:"cooldown_seconds"`
+}

@@ -1,10 +1,15 @@
 package dashboard
 
-import "load-balancer/internal/state"
+import (
+	"load-balancer/internal/state"
+	_ "time"
+)
 
 type Service struct {
 	state     *state.Manager
 	threshold *state.ThresholdState
+
+	autoscalerView AutoscalerView
 }
 
 func NewService(sm *state.Manager, ts *state.ThresholdState) *Service {
@@ -79,8 +84,24 @@ Full dashboard snapshot (used by WebSocket)
 */
 func (s *Service) Snapshot() map[string]interface{} {
 	return map[string]interface{}{
-		"summary": s.Summary(),
-		"vms":     s.VMList(),
-		"queues":  s.BuildQueues(),
+		"summary":    s.Summary(),
+		"vms":        s.VMList(),
+		"queues":     s.BuildQueues(),
+		"autoscaler": s.autoscalerView,
+	}
+}
+
+
+
+func (s *Service) UpdateAutoscalerView(auto *state.AutoscalerState) {
+
+	min, max, up, down := auto.GetConfig()
+
+	s.autoscalerView = AutoscalerView{
+		MinInstances:   min,
+		MaxInstances:   max,
+		ScaleUpCount:   up,
+		ScaleDownCount: down,
+		CooldownSec:    int(auto.Cooldown.Seconds()),
 	}
 }

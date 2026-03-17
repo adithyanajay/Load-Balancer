@@ -9,13 +9,18 @@ import (
 
 	"load-balancer/internal/logger"
 	"load-balancer/internal/state"
+	"load-balancer/internal/dashboard"
+	
 )
 
 type AdminHandler struct {
-	autoState    *state.AutoscalerState
-	manager      *state.Manager
-	awsClient    *Client
-	lbInstanceID string
+	autoState        *state.AutoscalerState
+	manager          *state.Manager
+	awsClient        *Client
+	lbInstanceID     string
+
+	dashboardService *dashboard.Service
+	dashboardHub     *dashboard.Hub
 }
 
 func NewAdminHandler(
@@ -23,15 +28,18 @@ func NewAdminHandler(
 	sm *state.Manager,
 	aws *Client,
 	lbID string,
+	ds *dashboard.Service,
+	hub *dashboard.Hub,
 ) *AdminHandler {
 	return &AdminHandler{
-		autoState:    as,
-		manager:      sm,
-		awsClient:    aws,
-		lbInstanceID: lbID,
+		autoState:        as,
+		manager:          sm,
+		awsClient:        aws,
+		lbInstanceID:     lbID,
+		dashboardService: ds,
+		dashboardHub:     hub,
 	}
 }
-
 type ConfigRequest struct {
 	MinInstances   int `json:"min_instances"`
 	MaxInstances   int `json:"max_instances"`
@@ -113,6 +121,9 @@ func (h *AdminHandler) UpdateAutoscalerConfig(c *gin.Context) {
 		req.ScaleDownCount,
 		cooldown,
 	)
+
+	h.dashboardService.UpdateAutoscalerView(h.autoState)
+	h.dashboardHub.PushUpdate()
 
 	logger.AutoscalerEvent(
 		fmt.Sprintf(
