@@ -11,7 +11,9 @@ const state = {
     underload: [],
     overload: [],
   },
-  autoscaler: null, // ✅ NEW
+  autoscaler: null,
+
+  vmHistory: {}, // ✅ NEW
 }
 const loadStatusTracker = {}
 
@@ -49,6 +51,40 @@ export function useDashboardStore() {
   return data
 }
 
+function updateVMHistory(vmsArray) {
+  const newHistory = {}
+
+  vmsArray.forEach(vm => {
+    const id = vm.InstanceID
+    const metrics = vm.Metrics || {}
+
+    const timestamp = metrics.Timestamp
+    if (!timestamp) return
+
+    const point = {
+      timestamp,
+      cpu: metrics.CPUPercent ?? 0,
+      memory: metrics.MemoryPercent ?? 0,
+    }
+
+    const existing = state.vmHistory[id] || []
+
+    const updated = [...existing, point]
+
+    // ✅ FIFO: remove oldest if > 40
+    if (updated.length > 20) {
+      updated.shift()
+    }
+
+    newHistory[id] = updated
+  })
+
+  // Remove missing VMs automatically
+  state.vmHistory = newHistory
+}
+
+
+
 export function connectDashboardWS(url) {
   if (socket) return
 
@@ -56,6 +92,7 @@ export function connectDashboardWS(url) {
 
   socket.onmessage = (e) => {
     const payload = JSON.parse(e.data)
+
 
     // Summary
     state.summary = payload.summary ?? null
@@ -83,7 +120,9 @@ export function connectDashboardWS(url) {
     }
 
     state.autoscaler = payload.autoscaler ?? null
+updateVMHistory(vmsArray)
 
+console.log(state.vmHistory)
     notify()
   }
 

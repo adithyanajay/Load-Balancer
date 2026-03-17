@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom"
-import { LayoutDashboard, Server, Zap } from "lucide-react"
+import { LayoutDashboard, Server, Zap, Activity } from "lucide-react"
 import { GlassCard } from "../ui/GlassCard"
 
 export default function Sidebar() {
@@ -7,6 +7,7 @@ export default function Sidebar() {
     { path: "/", label: "Dashboard", icon: LayoutDashboard },
     { path: "/vms", label: "Virtual Machines", icon: Server },
     { path: "/autoscaler", label: "Auto Scaler", icon: Zap },
+     { path: "/system-monitor", label: "System Monitor", icon: Activity },
   ]
 
   return (
