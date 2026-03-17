@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"time"
 )
 
 type LaunchConfig struct {
@@ -102,4 +103,83 @@ func (c *Client) RebootInstance(instanceID string) error {
 		InstanceIds: []string{instanceID},
 	})
 	return err
+}
+
+
+
+
+var instanceSpecs = map[string]struct {
+	CPU    string
+	Memory string
+}{
+	"t3.micro":  {"2 vCPU", "1 GB"},
+	"t3.small":  {"2 vCPU", "2 GB"},
+	"t3.medium": {"2 vCPU", "4 GB"},
+	"t3.large":  {"2 vCPU", "8 GB"},
+	"t3.xlarge": {"4 vCPU", "16 GB"},
+}
+
+type InstanceDetails struct {
+	InstanceID  string `json:"instance_id"`
+	InstanceType string `json:"instance_type"`
+	CPU         string `json:"cpu"`
+	Memory      string `json:"memory"`
+	OS          string `json:"os"`
+	State       string `json:"state"`
+	LaunchTime  string `json:"launch_time"`
+}
+
+
+func (c *Client) GetInstanceDetails(instanceID string) (*InstanceDetails, error) {
+
+	out, err := c.ec2Client.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{
+		InstanceIds: []string{instanceID},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(out.Reservations) == 0 || len(out.Reservations[0].Instances) == 0 {
+		return nil, fmt.Errorf("instance not found")
+	}
+
+	inst := out.Reservations[0].Instances[0]
+
+	instanceType := string(inst.InstanceType)
+
+	spec, ok := instanceSpecs[instanceType]
+	if !ok {
+		spec = struct {
+			CPU    string
+			Memory string
+		}{
+			CPU:    "unknown",
+			Memory: "unknown",
+		}
+	}
+
+	os := "Linux/UNIX"
+	if inst.PlatformDetails != nil {
+		os = *inst.PlatformDetails
+	}
+
+	state := "unknown"
+	if inst.State != nil && inst.State.Name != "" {
+		state = string(inst.State.Name)
+	}
+
+	launchTime := ""
+	if inst.LaunchTime != nil {
+		launchTime = inst.LaunchTime.Format(time.RFC3339)
+	}
+
+	return &InstanceDetails{
+		InstanceID:  instanceID,
+		InstanceType: instanceType,
+		CPU:         spec.CPU,
+		Memory:      spec.Memory,
+		OS:          os,
+		State:       state,
+		LaunchTime:  launchTime,
+	}, nil
 }

@@ -2,13 +2,17 @@ import React, { useState } from 'react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Save, Zap, TrendingUp, TrendingDown } from 'lucide-react';
 
+import AutoscalerCard from "../components/dashboard/AutoscalerCard"
+
+
+
 export default function AutoScaler() {
   const [config, setConfig] = useState({
     min_instances: 2,
     max_instances: 10,
-    scale_up_count: 2,
+    scale_up_count: 1,
     scale_down_count: 1,
-    cooldown_seconds: 5,
+    cooldown_seconds: 1,
   });
 
   const [error, setError] = useState(null);
@@ -166,6 +170,9 @@ export default function AutoScaler() {
             <ThresholdRow icon={TrendingUp} label="Scale Up" threshold="> 80%" percent={80} />
             <ThresholdRow icon={TrendingDown} label="Scale Down" threshold="< 20%" percent={20} />
           </GlassCard>
+        
+            <AutoscalerCard />
+         
         </div>
 
       </div>

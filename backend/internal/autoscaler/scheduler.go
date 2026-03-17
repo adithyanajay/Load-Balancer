@@ -184,6 +184,19 @@ func (h *AdminHandler) RestartInstance(c *gin.Context) {
 }
 
 
+func (h *AdminHandler) GetInstanceDetails(c *gin.Context) {
+
+	id := c.Param("instance_id")
+
+	data, err := h.awsClient.GetInstanceDetails(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
+}
+
 
 func RegisterAdminRoutes(
 	r *gin.Engine,
@@ -197,4 +210,6 @@ func RegisterAdminRoutes(
 
 	admin.POST("/instance/stop/:instance_id", handler.StopInstance)
 	admin.POST("/instance/restart/:instance_id", handler.RestartInstance)
+
+	admin.GET("/instance/:instance_id/details", handler.GetInstanceDetails)
 }

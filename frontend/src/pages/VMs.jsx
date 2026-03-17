@@ -1,6 +1,7 @@
 import { useDashboardStore } from "../store/dashboardStore"
 import VMCard from "../components/vm/VMCard"
 import LoadQueues from "../components/dashboard/LoadQueues"
+import AutoscalerCard from "../components/dashboard/AutoscalerCard"
 
 export default function VMs() {
   const { vms, queues } = useDashboardStore()
@@ -54,7 +55,11 @@ export default function VMs() {
   vms={vms}
 />
 
+          <div className="mt-5">
+        <AutoscalerCard />
         </div>
+        </div>
+        
       </div>
     </div>
   )
