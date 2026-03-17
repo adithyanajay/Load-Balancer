@@ -1,244 +1,233 @@
 import React, { useState } from 'react';
 import { GlassCard } from '../components/ui/GlassCard';
-import { Sliders, Save, Zap, TrendingUp, TrendingDown } from 'lucide-react';
+import { Save, Zap, TrendingUp, TrendingDown } from 'lucide-react';
 
 export default function AutoScaler() {
   const [config, setConfig] = useState({
-    autoScalingEnabled: true,
-    minVMs: 2,
-    maxVMs: 10,
-    scaleUpCooldownMinutes: 5,
-    scaleDownCheckMinutes: 15,
+    min_instances: 2,
+    max_instances: 10,
+    scale_up_count: 2,
+    scale_down_count: 1,
+    cooldown_seconds: 5,
   });
 
+  const [error, setError] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const handleChange = (field, value) => {
-    setConfig(prev => ({ ...prev, [field]: value }));
+    setConfig(prev => ({ ...prev, [field]: Number(value) || 0 }));
   };
 
+  // ---------------- VALIDATION ----------------
+  const validate = () => {
+    if (config.min_instances < 1 || config.min_instances > 10) {
+      return "Min instances must be between 1 and 10";
+    }
+
+    if (config.max_instances < 2 || config.max_instances > 10) {
+      return "Max instances must be between 2 and 10";
+    }
+
+    if (config.min_instances > config.max_instances) {
+      return "Min instances cannot be greater than max instances";
+    }
+
+    if (config.scale_up_count < 1 || config.scale_up_count > config.max_instances) {
+      return "Invalid scale up count";
+    }
+
+    if (config.scale_down_count < 1 || config.scale_down_count > config.max_instances) {
+      return "Invalid scale down count";
+    }
+
+    if (config.cooldown_seconds < 1 || config.cooldown_seconds > 120) {
+      return "Cooldown must be between 1 and 120 seconds";
+    }
+
+    return null;
+  };
+
+  // ---------------- SAVE ----------------
   const handleSave = () => {
-    // Handle save logic here
-    console.log('Saving config:', config);
+    const err = validate();
+    if (err) {
+      setError(err);
+      return;
+    }
+
+    setConfirmOpen(true);
+  };
+
+  const confirmSave = async () => {
+    setConfirmOpen(false);
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://3.226.122.247:8080/admin/autoscaler/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+
+      if (!res.ok) throw new Error("Failed to update config");
+
+    } catch (err) {
+      setError(err.message);
+    }
+
+    setLoading(false);
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
+      {/* ERROR POPUP */}
+      {error && (
+        <Popup
+          title="Error"
+          message={error}
+          onClose={() => setError(null)}
+          type="error"
+        />
+      )}
+
+      {/* CONFIRM POPUP */}
+      {confirmOpen && (
+        <Popup
+          title="Confirm Update"
+          message="Are you sure you want to update autoscaler configuration?"
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={confirmSave}
+          type="confirm"
+        />
+      )}
+
+      {/* HEADER */}
       <div>
         <h1 className="text-4xl font-display font-bold text-gray-900">
           Auto Scaler
         </h1>
         <p className="text-gray-500 mt-2">
-          Configure automated resource scaling policies
+          Configure automated scaling policies
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Configuration */}
-        <div className="lg:col-span-2 space-y-6">
+
+        {/* MAIN CARD */}
+        <div className="lg:col-span-2">
           <GlassCard className="p-8">
-            {/* Header with Toggle */}
-            <div className="flex items-center justify-between pb-6 mb-6 border-b border-gray-200">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-accent" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">
-                    Scaling Configuration
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    Enable and configure auto-scaling rules
-                  </p>
-                </div>
+
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center">
+                <Zap className="w-6 h-6 text-accent" />
               </div>
-
-              {/* Toggle Switch */}
-              <button
-                onClick={() => handleChange('autoScalingEnabled', !config.autoScalingEnabled)}
-                className={`
-                  relative w-14 h-8 rounded-full transition-colors duration-300
-                  focus:outline-none focus:ring-2 focus:ring-accent/50
-                  ${config.autoScalingEnabled ? 'bg-green-400' : 'bg-gray-300'}
-                `}
-              >
-                <div 
-                  className={`
-                    absolute top-1 left-1 w-6 h-6 bg-white rounded-full 
-                    transition-transform duration-300
-                    ${config.autoScalingEnabled ? 'translate-x-6' : 'translate-x-0'}
-                  `} 
-                />
-              </button>
+              <h2 className="text-xl font-bold">Scaling Configuration</h2>
             </div>
 
-            {/* Form Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <InputField
-                label="Minimum VMs"
-                value={config.minVMs}
-                onChange={(e) => handleChange('minVMs', parseInt(e.target.value) || 0)}
-                type="number"
-                min="1"
-              />
 
-              <InputField
-                label="Maximum VMs"
-                value={config.maxVMs}
-                onChange={(e) => handleChange('maxVMs', parseInt(e.target.value) || 0)}
-                type="number"
-                min="1"
-              />
+              <InputField label="Min Instances" value={config.min_instances}
+                onChange={(v) => handleChange("min_instances", v)} />
 
-              <InputField
-                label="Scale Up Cooldown (minutes)"
-                value={config.scaleUpCooldownMinutes}
-                onChange={(e) => handleChange('scaleUpCooldownMinutes', parseInt(e.target.value) || 0)}
-                type="number"
-                min="1"
-              />
+              <InputField label="Max Instances" value={config.max_instances}
+                onChange={(v) => handleChange("max_instances", v)} />
 
-              <InputField
-                label="Scale Down Check (minutes)"
-                value={config.scaleDownCheckMinutes}
-                onChange={(e) => handleChange('scaleDownCheckMinutes', parseInt(e.target.value) || 0)}
-                type="number"
-                min="1"
-              />
+              <InputField label="Scale Up Count" value={config.scale_up_count}
+                onChange={(v) => handleChange("scale_up_count", v)} />
+
+              <InputField label="Scale Down Count" value={config.scale_down_count}
+                onChange={(v) => handleChange("scale_down_count", v)} />
+
+              <InputField label="Cooldown (seconds)" value={config.cooldown_seconds}
+                onChange={(v) => handleChange("cooldown_seconds", v)} />
+
             </div>
 
-            {/* Save Button */}
             <div className="mt-8 flex justify-end">
-              <button 
+              <button
                 onClick={handleSave}
-                className="
-                  flex items-center gap-2 px-6 py-3 
-                  bg-accent text-white rounded-xl 
-                  font-semibold text-sm
-                  hover:bg-accent/90 
-                  transition-all
-                "
+                disabled={loading}
+                className="flex items-center gap-2 px-6 py-3 bg-accent text-white rounded-xl font-semibold hover:bg-accent/90"
               >
                 <Save className="w-4 h-4" />
-                Save Configuration
+                {loading ? "Saving..." : "Save"}
               </button>
             </div>
+
           </GlassCard>
         </div>
 
-        {/* Sidebar Info */}
+        {/* SIDE INFO */}
         <div className="space-y-6">
-          {/* Tips Card */}
-          <GlassCard className="p-6 bg-gradient-to-br from-accent/20 to-purple-100">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-white/50 flex items-center justify-center">
-                <Sliders className="w-5 h-5 text-accent" />
-              </div>
-              <h3 className="font-bold text-gray-900">
-                Optimization Tips
-              </h3>
-            </div>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Lower cooldown periods enable faster response to traffic spikes but may increase costs. 
-              Balance responsiveness with resource efficiency.
-            </p>
-          </GlassCard>
-
-          {/* Thresholds Card */}
           <GlassCard className="p-6">
-            <h3 className="font-bold text-gray-900 mb-5">
-              Scaling Thresholds
-            </h3>
-            <div className="space-y-5">
-              <ThresholdRow 
-                icon={TrendingUp}
-                label="Scale Up CPU" 
-                threshold="> 80%"
-                percent={80}
-                color="bg-status-warning"
-              />
-              <ThresholdRow 
-                icon={TrendingDown}
-                label="Scale Down CPU" 
-                threshold="< 30%"
-                percent={30}
-                color="bg-status-running"
-              />
-            </div>
+            <h3 className="font-bold mb-4">Thresholds</h3>
+            <ThresholdRow icon={TrendingUp} label="Scale Up" threshold="> 80%" percent={80} />
+            <ThresholdRow icon={TrendingDown} label="Scale Down" threshold="< 20%" percent={20} />
           </GlassCard>
+        </div>
 
-          {/* Current Status */}
-          <GlassCard className="p-6">
-            <h3 className="font-bold text-gray-900 mb-4">
-              Current Status
-            </h3>
-            <div className="space-y-3">
-              <StatusRow label="Auto Scaling" value={config.autoScalingEnabled ? "Enabled" : "Disabled"} active={config.autoScalingEnabled} />
-              <StatusRow label="Active VMs" value="5" />
-              <StatusRow label="VM Range" value={`${config.minVMs} - ${config.maxVMs}`} />
-            </div>
-          </GlassCard>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- UI COMPONENTS ---------- */
+
+function InputField({ label, value, onChange }) {
+  return (
+    <div>
+      <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-4 py-3 rounded-xl border border-gray-200"
+      />
+    </div>
+  );
+}
+
+function Popup({ title, message, onClose, onConfirm, type }) {
+  return (
+    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-2xl w-96 shadow-xl">
+        <h3 className="text-lg font-bold mb-2">{title}</h3>
+        <p className="text-gray-600 mb-4">{message}</p>
+
+        <div className="flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-200">
+            Cancel
+          </button>
+
+          {type === "confirm" && (
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 rounded-lg bg-accent text-white"
+            >
+              Confirm
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-/* ---------- Components ---------- */
-
-function InputField({ label, value, onChange, type = "text", min }) {
-  return (
-    <div className="relative">
-      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-        {label}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={onChange}
-        min={min}
-        className="
-          w-full px-4 py-3 rounded-xl
-          bg-white/50 border border-gray-200
-          text-gray-900 font-semibold
-          focus:outline-none focus:ring-2 focus:ring-accent/50
-          transition-all
-        "
-      />
-    </div>
-  )
-}
-
-function ThresholdRow({ icon: Icon, label, threshold, percent, color }) {
+function ThresholdRow({ icon: Icon, label, threshold, percent }) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex justify-between mb-1">
         <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4 text-gray-600" />
-          <span className="text-sm text-gray-600">{label}</span>
+          <Icon className="w-4 h-4" />
+          <span>{label}</span>
         </div>
-        <span className="text-sm font-bold text-gray-900">{threshold}</span>
+        <span>{threshold}</span>
       </div>
-      <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
-        <div 
-          className={`h-full ${color} rounded-full`}
-          style={{ width: `${percent}%` }}
-        />
+      <div className="w-full bg-gray-200 h-2 rounded-full">
+        <div className="bg-accent h-full rounded-full" style={{ width: `${percent}%` }} />
       </div>
     </div>
-  )
-}
-
-function StatusRow({ label, value, active }) {
-  return (
-    <div className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-      <span className="text-sm text-gray-600">{label}</span>
-      <span className={`text-sm font-semibold ${
-        active !== undefined 
-          ? (active ? 'text-green-600' : 'text-red-600')
-          : 'text-gray-900'
-      }`}>
-        {value}
-      </span>
-    </div>
-  )
+  );
 }

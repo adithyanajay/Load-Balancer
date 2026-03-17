@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { data } from "react-router-dom"
 
 let socket = null
 const listeners = new Set()
@@ -10,8 +11,8 @@ const state = {
     underload: [],
     overload: [],
   },
+  autoscaler: null, // ✅ NEW
 }
-
 const loadStatusTracker = {}
 
 function calculateLoadStatus(instanceId, loadPercent) {
@@ -59,12 +60,15 @@ export function connectDashboardWS(url) {
     // Summary
     state.summary = payload.summary ?? null
 
+ 
+
     // VMs
     const vmsArray = Array.isArray(payload.vms)
       ? payload.vms
       : Object.values(payload.vms ?? {})
 
     state.vms = vmsArray.map((vm) => {
+     
       const loadPercent = vm.Metrics?.LoadPercent ?? 0
       return {
         ...vm,
@@ -77,6 +81,8 @@ export function connectDashboardWS(url) {
       underload: payload.queues?.underload ?? [],
       overload: payload.queues?.overload ?? [],
     }
+
+    state.autoscaler = payload.autoscaler ?? null
 
     notify()
   }
