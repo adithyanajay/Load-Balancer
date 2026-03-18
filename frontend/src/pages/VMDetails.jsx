@@ -28,7 +28,7 @@ export default function VMDetails() {
     const fetchDetails = async () => {
       try {
         const res = await fetch(
-          `http://3.226.122.247:8080/admin/instance/${vmId}/details`
+          `http://34.204.172.76:8080/admin/instance/${vmId}/details`
         )
 
         const data = await res.json()
