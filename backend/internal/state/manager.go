@@ -20,7 +20,7 @@ type Manager struct {
 
 func NewManager() *Manager {
 	return &Manager{
-		vmByID:           make(map[string]*VMState),
+		vmByID:            make(map[string]*VMState),
 		registrationOrder: []string{},
 	}
 }
@@ -45,12 +45,21 @@ func (m *Manager) RegisterOrUpdateVM(
 
 	// First time registration → FIFO append
 	if !exists {
+
+		// ✅ Initialize LoadState (hysteresis safe)
+		load := metrics.LoadPercent
+		initialState := LoadUnderload
+		if load >= 75 {
+			initialState = LoadOverload
+		}
+
 		vm = &VMState{
 			InstanceID:     instanceID,
 			VMIP:           vmIP,
 			Status:         StatusActive,
 			Metrics:        metrics,
 			LastReportedAt: now,
+			LoadState:      initialState, // ✅ IMPORTANT
 		}
 
 		m.vmByID[instanceID] = vm
@@ -69,7 +78,9 @@ func (m *Manager) RegisterOrUpdateVM(
 	vm.LastReportedAt = now
 	vm.Status = StatusActive
 
+	// ✅ Optional: reset LoadState if VM comes back alive
 	if prevStatus != StatusActive {
+		vm.LoadState = "" // force reclassification next cycle
 		logger.StateChange(instanceID, string(prevStatus), string(StatusActive))
 	}
 
@@ -151,9 +162,10 @@ func (m *Manager) LastUpdate() time.Time {
 	return latest
 }
 
+// ============================
+// ADDITIONAL HELPERS
+// ============================
 
-
-// new 
 // ActiveCount returns number of ACTIVE VMs
 func (m *Manager) ActiveCount() int {
 	return m.CountByStatus(StatusActive)
@@ -167,7 +179,7 @@ func (m *Manager) RemoveVM(instanceID string) {
 	delete(m.vmByID, instanceID)
 
 	// rebuild registrationOrder without instanceID
-	newOrder := []string{}
+	newOrder := make([]string, 0, len(m.registrationOrder)) // ✅ optimized
 	for _, id := range m.registrationOrder {
 		if id != instanceID {
 			newOrder = append(newOrder, id)

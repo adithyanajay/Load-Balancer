@@ -6,7 +6,13 @@ import (
 	"load-balancer/internal/logger"
 )
 
-// ThresholdState classifies VMs WITHOUT changing order
+// LoadState values
+const (
+	LoadUnderload = "UNDERLOAD"
+	LoadOverload  = "OVERLOAD"
+)
+
+// ThresholdState classifies VMs WITH hysteresis (sticky states)
 type ThresholdState struct {
 	mu sync.RWMutex
 
@@ -14,19 +20,18 @@ type ThresholdState struct {
 	UnderloadQueue []string
 	OverloadQueue  []string
 
-	OverloadThreshold float64
+	OverloadThreshold  float64
 	UnderloadThreshold float64
 }
 
 func NewThresholdState() *ThresholdState {
 	return &ThresholdState{
-		OverloadThreshold: 75.0,
+		OverloadThreshold:  75.0,
 		UnderloadThreshold: 25.0,
-	
 	}
 }
-                                                                         
-// ClassifyVMsByLoad filters VMs but preserves FIFO order
+
+// ClassifyVMsByLoad uses hysteresis (stateful classification)
 func (t *ThresholdState) ClassifyVMsByLoad(
 	registeredVMs []*VMState,
 ) {
@@ -36,12 +41,39 @@ func (t *ThresholdState) ClassifyVMsByLoad(
 	t.UnderloadQueue = []string{}
 	t.OverloadQueue = []string{}
 
-	for _, vm := range registeredVMs { // FIFO ITERATION
+	for _, vm := range registeredVMs { // FIFO iteration
+
 		if vm.Status != StatusActive {
 			continue
 		}
 
-		if vm.Metrics.LoadPercent < t.OverloadThreshold {
+		load := vm.Metrics.LoadPercent
+
+		switch vm.LoadState {
+
+		case LoadUnderload:
+			// Transition: UNDERLOAD → OVERLOAD
+			if load >= t.OverloadThreshold {
+				vm.LoadState = LoadOverload
+			}
+
+		case LoadOverload:
+			// Transition: OVERLOAD → UNDERLOAD
+			if load <= t.UnderloadThreshold {
+				vm.LoadState = LoadUnderload
+			}
+
+		default:
+			// Initial assignment (first time)
+			if load >= t.OverloadThreshold {
+				vm.LoadState = LoadOverload
+			} else {
+				vm.LoadState = LoadUnderload
+			}
+		}
+
+		// Add to queues based on state
+		if vm.LoadState == LoadUnderload {
 			t.UnderloadQueue = append(t.UnderloadQueue, vm.InstanceID)
 		} else {
 			t.OverloadQueue = append(t.OverloadQueue, vm.InstanceID)

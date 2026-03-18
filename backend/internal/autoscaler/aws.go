@@ -39,20 +39,20 @@ func NewClient(cfg LaunchConfig) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) LaunchInstances(count int32) error {
-	_, err := c.ec2Client.RunInstances(context.TODO(), &ec2.RunInstancesInput{
-		ImageId:      &c.cfg.AMI,
-		InstanceType: types.InstanceType(c.cfg.InstanceType),
-		MinCount:     &count,
-		MaxCount:     &count,
-		KeyName:      &c.cfg.KeyName,
-		SubnetId:     &c.cfg.SubnetID,
-		SecurityGroupIds: []string{
-			c.cfg.SecurityGroup,
-		},
-	})
-	return err
-}
+// func (c *Client) LaunchInstances(count int32) error {
+// 	_, err := c.ec2Client.RunInstances(context.TODO(), &ec2.RunInstancesInput{
+// 		ImageId:      &c.cfg.AMI,
+// 		InstanceType: types.InstanceType(c.cfg.InstanceType),
+// 		MinCount:     &count,
+// 		MaxCount:     &count,
+// 		KeyName:      &c.cfg.KeyName,
+// 		SubnetId:     &c.cfg.SubnetID,
+// 		SecurityGroupIds: []string{
+// 			c.cfg.SecurityGroup,
+// 		},
+// 	})
+// 	return err
+// }
 
 func (c *Client) StopInstance(instanceID string) error {
 	_, err := c.ec2Client.StopInstances(context.TODO(), &ec2.StopInstancesInput{

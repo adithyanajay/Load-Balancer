@@ -25,4 +25,5 @@ type VMState struct {
 	Status         VMStatus
 	Metrics        Metrics
 	LastReportedAt time.Time
+	LoadState string 
 }

@@ -182,13 +182,13 @@ func (s *Service) evaluateScaleUp() {
 	// Otherwise: Launch new instances
 	// ----------------------------------------
 
-	err = s.awsClient.LaunchInstances(int32(upCount))
-	if err != nil {
-		logger.AutoscalerEvent(
-			fmt.Sprintf("Failed to launch new instances: %v", err),
-		)
-		return
-	}
+	// err = s.awsClient.LaunchInstances(int32(upCount))
+	// if err != nil {
+	// 	logger.AutoscalerEvent(
+	// 		fmt.Sprintf("Failed to launch new instances: %v", err),
+	// 	)
+	// 	return
+	// }
 
 	logger.AutoscalerEvent(
 		fmt.Sprintf("Launched new instances: %d", upCount),
