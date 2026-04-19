@@ -1,11 +1,12 @@
 import React from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import { Outlet } from 'react-router-dom';
 
-const Layout = ({ children }) => {
+const Layout = () => {
     return (
         <div className="flex h-screen overflow-hidden bg-gradient-to-br from-bg-gradient-start to-bg-gradient-end font-text text-gray-800">
-            {/* Sidebar - Wider to prevent text wrapping */}
+            {/* Sidebar */}
             <div className="hidden md:flex w-72 flex-col p-6 z-20">
                 <Sidebar className="h-full" />
             </div>
@@ -16,7 +17,7 @@ const Layout = ({ children }) => {
 
                 <main className="flex-1 overflow-y-auto p-8">
                     <div className="max-w-7xl mx-auto space-y-6">
-                        {children}
+                        <Outlet />   {/* ✅ THIS IS THE ONLY IMPORTANT CHANGE */}
                     </div>
                 </main>
             </div>

@@ -68,7 +68,7 @@ export default function AutoScaler() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://34.204.172.76:8080/admin/autoscaler/config", {
+      const res = await fetch("http://100.53.13.182:8080/admin/autoscaler/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config),

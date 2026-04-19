@@ -28,7 +28,7 @@ export default function VMDetails() {
     const fetchDetails = async () => {
       try {
         const res = await fetch(
-          `http://34.204.172.76:8080/admin/instance/${vmId}/details`
+          `http://100.53.13.182:8080/admin/instance/${vmId}/details`
         )
 
         const data = await res.json()
@@ -46,7 +46,7 @@ export default function VMDetails() {
   const handleStop = async () => {
     try {
       await fetch(
-        `http://3.226.122.247:8080/admin/instance/stop/${vmId}`,
+        `http://100.53.13.182:8080/admin/instance/stop/${vmId}`,
         { method: "POST" }
       )
     } catch (err) {
@@ -59,7 +59,7 @@ export default function VMDetails() {
   const handleRestart = async () => {
     try {
       await fetch(
-        `http://3.226.122.247:8080/admin/instance/restart/${vmId}`,
+        `http://100.53.13.182:8080/admin/instance/restart/${vmId}`,
         { method: "POST" }
       )
     } catch (err) {

@@ -4,6 +4,8 @@ import (
 	"sync"
 
 	"load-balancer/internal/logger"
+
+	"sort"
 )
 
 // LoadState values
@@ -81,6 +83,9 @@ func (t *ThresholdState) ClassifyVMsByLoad(
 	}
 
 	logger.ThresholdState(t.UnderloadQueue, t.OverloadQueue)
+
+
+	t.ReorderOverloadQueueByLoad(registeredVMs)
 }
 
 // Snapshot helpers (used by selector & dashboard)
@@ -103,4 +108,28 @@ func (t *ThresholdState) OverloadCount() int {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	return len(t.OverloadQueue)
+}
+
+
+// ReorderOverloadQueueByLoad sorts overload queue by ascending load %
+func (t *ThresholdState) ReorderOverloadQueueByLoad(
+	registeredVMs []*VMState,
+) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	sort.SliceStable(t.OverloadQueue, func(i, j int) bool {
+		var loadI, loadJ float64
+
+		for _, vm := range registeredVMs {
+			if vm.InstanceID == t.OverloadQueue[i] {
+				loadI = vm.Metrics.LoadPercent
+			}
+			if vm.InstanceID == t.OverloadQueue[j] {
+				loadJ = vm.Metrics.LoadPercent
+			}
+		}
+
+		return loadI < loadJ
+	})
 }
